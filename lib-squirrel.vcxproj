@@ -1,0 +1,196 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{DB0BFE4C-628B-4827-9584-E8FFA8D41A7C}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>libsquirrel</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;SQBIND_STATIC;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(ProjectDir)/src/squirrel;$(ProjectDir)/src/sqstdlib;$(ProjectDir)/src/sqbind;$(ProjectDir)/src/sqbind/autogen;$(ProjectDir)/src/xtra</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;SQBIND_STATIC;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(ProjectDir)/src/squirrel;$(ProjectDir)/src/sqstdlib;$(ProjectDir)/src/sqbind;$(ProjectDir)/src/sqbind/autogen;$(ProjectDir)/src/xtra</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="api_test.cpp" />
+    <ClCompile Include="src\sqbind\sqbAssert.cpp" />
+    <ClCompile Include="src\sqbind\sqbBind.cpp" />
+    <ClCompile Include="src\sqbind\sqbClassHelpers.cpp" />
+    <ClCompile Include="src\sqbind\sqbClassTypeTag.cpp" />
+    <ClCompile Include="src\sqbind\sqbPrecompiled.cpp" />
+    <ClCompile Include="src\sqbind\sqbScopedArrayAccess.cpp" />
+    <ClCompile Include="src\sqbind\sqbScopedTableAccess.cpp" />
+    <ClCompile Include="src\sqbind\sqbSquirrelFunction.cpp" />
+    <ClCompile Include="src\sqbind\sqbSquirrelObject.cpp" />
+    <ClCompile Include="src\sqbind\sqbSquirrelVM.cpp" />
+    <ClCompile Include="src\sqbind\sqbStackHandler.cpp" />
+    <ClCompile Include="src\sqbind\sqbTableIterator.cpp" />
+    <ClCompile Include="src\sqstdlib\sqstdaux.cpp" />
+    <ClCompile Include="src\sqstdlib\sqstdblob.cpp" />
+    <ClCompile Include="src\sqstdlib\sqstdio.cpp" />
+    <ClCompile Include="src\sqstdlib\sqstdmath.cpp" />
+    <ClCompile Include="src\sqstdlib\sqstdrex.cpp" />
+    <ClCompile Include="src\sqstdlib\sqstdstream.cpp" />
+    <ClCompile Include="src\sqstdlib\sqstdstring.cpp" />
+    <ClCompile Include="src\sqstdlib\sqstdsystem.cpp" />
+    <ClCompile Include="src\squirrel\sqapi.cpp" />
+    <ClCompile Include="src\squirrel\sqbaselib.cpp" />
+    <ClCompile Include="src\squirrel\sqclass.cpp" />
+    <ClCompile Include="src\squirrel\sqcompiler.cpp" />
+    <ClCompile Include="src\squirrel\sqdebug.cpp" />
+    <ClCompile Include="src\squirrel\sqfuncstate.cpp" />
+    <ClCompile Include="src\squirrel\sqlexer.cpp" />
+    <ClCompile Include="src\squirrel\sqmem.cpp" />
+    <ClCompile Include="src\squirrel\sqobject.cpp" />
+    <ClCompile Include="src\squirrel\sqstate.cpp" />
+    <ClCompile Include="src\squirrel\sqtable.cpp" />
+    <ClCompile Include="src\squirrel\sqvm.cpp" />
+    <ClCompile Include="src\xtra\_xsqbind.cpp" />
+    <ClCompile Include="src\xtra\_xsqio.cpp" />
+    <ClCompile Include="src\xtra\_xsquirrel.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\sqbind\autogen\sqbCall.h" />
+    <ClInclude Include="src\sqbind\autogen\sqbParamCheckHelper.h" />
+    <ClInclude Include="src\sqbind\autogen\sqbReturnSpecialisation.h" />
+    <ClInclude Include="src\sqbind\sqbAssert.h" />
+    <ClInclude Include="src\sqbind\sqbBaseHeader.h" />
+    <ClInclude Include="src\sqbind\sqbBind.h" />
+    <ClInclude Include="src\sqbind\sqbBindMacros.h" />
+    <ClInclude Include="src\sqbind\sqbClassDefinition.h" />
+    <ClInclude Include="src\sqbind\sqbClassHelpers.h" />
+    <ClInclude Include="src\sqbind\sqbClassTypeTag.h" />
+    <ClInclude Include="src\sqbind\sqbFunctionOptions.h" />
+    <ClInclude Include="src\sqbind\sqbPrecompiled.h" />
+    <ClInclude Include="src\sqbind\sqbScopedArrayAccess.h" />
+    <ClInclude Include="src\sqbind\sqbScopedTableAccess.h" />
+    <ClInclude Include="src\sqbind\sqbSquirrelFunction.h" />
+    <ClInclude Include="src\sqbind\sqbSquirrelObject.h" />
+    <ClInclude Include="src\sqbind\sqbSquirrelVM.h" />
+    <ClInclude Include="src\sqbind\sqbStackHandler.h" />
+    <ClInclude Include="src\sqbind\sqbStackUtils.h" />
+    <ClInclude Include="src\sqbind\sqbTableIterator.h" />
+    <ClInclude Include="src\sqbind\sqbTypeInfo.h" />
+    <ClInclude Include="src\sqbind\sqbTypeTraits.h" />
+    <ClInclude Include="src\sqbind\SquirrelBind.h" />
+    <ClInclude Include="src\sqstdlib\sqstdaux.h" />
+    <ClInclude Include="src\sqstdlib\sqstdblob.h" />
+    <ClInclude Include="src\sqstdlib\sqstdblobimpl.h" />
+    <ClInclude Include="src\sqstdlib\sqstdio.h" />
+    <ClInclude Include="src\sqstdlib\sqstdmath.h" />
+    <ClInclude Include="src\sqstdlib\sqstdstream.h" />
+    <ClInclude Include="src\sqstdlib\sqstdstring.h" />
+    <ClInclude Include="src\sqstdlib\sqstdsystem.h" />
+    <ClInclude Include="src\squirrel\sqarray.h" />
+    <ClInclude Include="src\squirrel\sqclass.h" />
+    <ClInclude Include="src\squirrel\sqclosure.h" />
+    <ClInclude Include="src\squirrel\sqcompiler.h" />
+    <ClInclude Include="src\squirrel\sqfuncproto.h" />
+    <ClInclude Include="src\squirrel\sqfuncstate.h" />
+    <ClInclude Include="src\squirrel\sqlexer.h" />
+    <ClInclude Include="src\squirrel\sqobject.h" />
+    <ClInclude Include="src\squirrel\sqopcodes.h" />
+    <ClInclude Include="src\squirrel\sqpcheader.h" />
+    <ClInclude Include="src\squirrel\sqstate.h" />
+    <ClInclude Include="src\squirrel\sqstring.h" />
+    <ClInclude Include="src\squirrel\sqtable.h" />
+    <ClInclude Include="src\squirrel\squirrel.h" />
+    <ClInclude Include="src\squirrel\squserdata.h" />
+    <ClInclude Include="src\squirrel\squtils.h" />
+    <ClInclude Include="src\squirrel\sqvm.h" />
+    <ClInclude Include="src\xtra\xsqbind.h" />
+    <ClInclude Include="src\xtra\xsquirrel.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="lib_sqbind.pack" />
+    <None Include="lib_squirrel.pack" />
+    <None Include="src\sqbind\autogen\sqbCall.inl" />
+    <None Include="src\sqbind\autogen\sqbParamCheckHelper.inl" />
+    <None Include="src\sqbind\autogen\sqbReturnSpecialisation.inl" />
+    <None Include="src\sqbind\sqbBind.inl" />
+    <None Include="src\sqbind\sqbBindMacros.inl" />
+    <None Include="src\sqbind\sqbClassDefinition.inl" />
+    <None Include="src\sqbind\sqbClassHelpers.inl" />
+    <None Include="src\sqbind\sqbClassTypeTag.inl" />
+    <None Include="src\sqbind\sqbFunctionOptions.inl" />
+    <None Include="src\sqbind\sqbScopedArrayAccess.inl" />
+    <None Include="src\sqbind\sqbScopedTableAccess.inl" />
+    <None Include="src\sqbind\sqbSquirrelFunction.inl" />
+    <None Include="src\sqbind\sqbSquirrelObject.inl" />
+    <None Include="src\sqbind\sqbSquirrelVM.inl" />
+    <None Include="src\sqbind\sqbStackHandler.inl" />
+    <None Include="src\sqbind\sqbStackUtils.inl" />
+    <None Include="src\sqbind\sqbTableIterator.inl" />
+    <None Include="src\sqbind\sqbTypeInfo.inl" />
+    <None Include="src\sqbind\sqbTypeTraits.inl" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

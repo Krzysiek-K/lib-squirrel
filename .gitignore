@@ -1,0 +1,6 @@
+*.tlog
+/Debug
+*.ipch
+/lib-squirrel-packed/Debug
+*.sdf
+*.suo

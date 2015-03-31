@@ -1,0 +1,341 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Squirrel">
+      <UniqueIdentifier>{a0c558fe-8baa-40c5-a111-bf662e472038}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SqStdLib">
+      <UniqueIdentifier>{31dee7ef-b01f-4564-af25-2eb7ba7fcfb3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Xtra">
+      <UniqueIdentifier>{b4c25dd9-8cf6-409e-a7f0-a079caab18ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SqBind">
+      <UniqueIdentifier>{3b6521a8-d15e-409a-8b7e-dc7637954ffc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SqBind\Autogen">
+      <UniqueIdentifier>{972ef0ff-ec41-4d11-a3d5-6ad66f57d905}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="api_test.cpp" />
+    <ClCompile Include="src\sqbind\sqbAssert.cpp">
+      <Filter>SqBind</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqbind\sqbBind.cpp">
+      <Filter>SqBind</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqbind\sqbClassHelpers.cpp">
+      <Filter>SqBind</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqbind\sqbClassTypeTag.cpp">
+      <Filter>SqBind</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqbind\sqbPrecompiled.cpp">
+      <Filter>SqBind</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqbind\sqbScopedArrayAccess.cpp">
+      <Filter>SqBind</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqbind\sqbScopedTableAccess.cpp">
+      <Filter>SqBind</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqbind\sqbSquirrelFunction.cpp">
+      <Filter>SqBind</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqbind\sqbSquirrelObject.cpp">
+      <Filter>SqBind</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqbind\sqbSquirrelVM.cpp">
+      <Filter>SqBind</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqbind\sqbStackHandler.cpp">
+      <Filter>SqBind</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqbind\sqbTableIterator.cpp">
+      <Filter>SqBind</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqstdlib\sqstdaux.cpp">
+      <Filter>SqStdLib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqstdlib\sqstdblob.cpp">
+      <Filter>SqStdLib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqstdlib\sqstdio.cpp">
+      <Filter>SqStdLib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqstdlib\sqstdmath.cpp">
+      <Filter>SqStdLib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqstdlib\sqstdrex.cpp">
+      <Filter>SqStdLib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqstdlib\sqstdstream.cpp">
+      <Filter>SqStdLib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqstdlib\sqstdstring.cpp">
+      <Filter>SqStdLib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sqstdlib\sqstdsystem.cpp">
+      <Filter>SqStdLib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\squirrel\sqapi.cpp">
+      <Filter>Squirrel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\squirrel\sqbaselib.cpp">
+      <Filter>Squirrel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\squirrel\sqclass.cpp">
+      <Filter>Squirrel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\squirrel\sqcompiler.cpp">
+      <Filter>Squirrel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\squirrel\sqdebug.cpp">
+      <Filter>Squirrel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\squirrel\sqfuncstate.cpp">
+      <Filter>Squirrel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\squirrel\sqlexer.cpp">
+      <Filter>Squirrel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\squirrel\sqmem.cpp">
+      <Filter>Squirrel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\squirrel\sqobject.cpp">
+      <Filter>Squirrel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\squirrel\sqstate.cpp">
+      <Filter>Squirrel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\squirrel\sqtable.cpp">
+      <Filter>Squirrel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\squirrel\sqvm.cpp">
+      <Filter>Squirrel</Filter>
+    </ClCompile>
+    <ClCompile Include="src\xtra\_xsquirrel.cpp">
+      <Filter>Xtra</Filter>
+    </ClCompile>
+    <ClCompile Include="src\xtra\_xsqbind.cpp">
+      <Filter>Xtra</Filter>
+    </ClCompile>
+    <ClCompile Include="src\xtra\_xsqio.cpp">
+      <Filter>Xtra</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\sqbind\autogen\sqbCall.h">
+      <Filter>SqBind\Autogen</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\autogen\sqbParamCheckHelper.h">
+      <Filter>SqBind\Autogen</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\autogen\sqbReturnSpecialisation.h">
+      <Filter>SqBind\Autogen</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbAssert.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbBaseHeader.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbBind.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbBindMacros.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbClassDefinition.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbClassHelpers.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbClassTypeTag.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbFunctionOptions.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbPrecompiled.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbScopedArrayAccess.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbScopedTableAccess.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbSquirrelFunction.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbSquirrelObject.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbSquirrelVM.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbStackHandler.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbStackUtils.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbTableIterator.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbTypeInfo.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\sqbTypeTraits.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqbind\SquirrelBind.h">
+      <Filter>SqBind</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqstdlib\sqstdaux.h">
+      <Filter>SqStdLib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqstdlib\sqstdblob.h">
+      <Filter>SqStdLib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqstdlib\sqstdblobimpl.h">
+      <Filter>SqStdLib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqstdlib\sqstdio.h">
+      <Filter>SqStdLib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqstdlib\sqstdmath.h">
+      <Filter>SqStdLib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqstdlib\sqstdstream.h">
+      <Filter>SqStdLib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqstdlib\sqstdstring.h">
+      <Filter>SqStdLib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqstdlib\sqstdsystem.h">
+      <Filter>SqStdLib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\sqarray.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\sqclass.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\sqclosure.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\sqcompiler.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\sqfuncproto.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\sqfuncstate.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\sqlexer.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\sqobject.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\sqopcodes.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\sqpcheader.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\sqstate.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\sqstring.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\sqtable.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\squirrel.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\squserdata.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\squtils.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\squirrel\sqvm.h">
+      <Filter>Squirrel</Filter>
+    </ClInclude>
+    <ClInclude Include="src\xtra\xsquirrel.h">
+      <Filter>Xtra</Filter>
+    </ClInclude>
+    <ClInclude Include="src\xtra\xsqbind.h">
+      <Filter>Xtra</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\sqbind\autogen\sqbCall.inl">
+      <Filter>SqBind\Autogen</Filter>
+    </None>
+    <None Include="src\sqbind\autogen\sqbParamCheckHelper.inl">
+      <Filter>SqBind\Autogen</Filter>
+    </None>
+    <None Include="src\sqbind\autogen\sqbReturnSpecialisation.inl">
+      <Filter>SqBind\Autogen</Filter>
+    </None>
+    <None Include="src\sqbind\sqbBind.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="src\sqbind\sqbBindMacros.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="src\sqbind\sqbClassDefinition.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="src\sqbind\sqbClassHelpers.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="src\sqbind\sqbClassTypeTag.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="src\sqbind\sqbFunctionOptions.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="src\sqbind\sqbScopedArrayAccess.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="src\sqbind\sqbScopedTableAccess.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="src\sqbind\sqbSquirrelFunction.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="src\sqbind\sqbSquirrelObject.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="src\sqbind\sqbSquirrelVM.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="src\sqbind\sqbStackHandler.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="src\sqbind\sqbStackUtils.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="src\sqbind\sqbTableIterator.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="src\sqbind\sqbTypeInfo.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="src\sqbind\sqbTypeTraits.inl">
+      <Filter>SqBind</Filter>
+    </None>
+    <None Include="lib_sqbind.pack" />
+    <None Include="lib_squirrel.pack" />
+  </ItemGroup>
+</Project>

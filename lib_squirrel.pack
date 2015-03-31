@@ -1,0 +1,8 @@
+
+out squirrel
++sr src/xtra/_xsquirrel.cpp
++sr src/xtra/_xsqio.cpp
++sr src/sqstdlib/*.cpp
++sr src/squirrel/*.cpp
++hr src/*.h
++i  xsquirrel.h

@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual C++ Express 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lib-squirrel", "lib-squirrel.vcxproj", "{DB0BFE4C-628B-4827-9584-E8FFA8D41A7C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lib-squirrel-packed", "lib-squirrel-packed\lib-squirrel-packed.vcxproj", "{5B089A0E-948A-4FD2-9A1C-EDABDA2999B1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DB0BFE4C-628B-4827-9584-E8FFA8D41A7C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DB0BFE4C-628B-4827-9584-E8FFA8D41A7C}.Debug|Win32.Build.0 = Debug|Win32
+		{DB0BFE4C-628B-4827-9584-E8FFA8D41A7C}.Release|Win32.ActiveCfg = Release|Win32
+		{DB0BFE4C-628B-4827-9584-E8FFA8D41A7C}.Release|Win32.Build.0 = Release|Win32
+		{5B089A0E-948A-4FD2-9A1C-EDABDA2999B1}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5B089A0E-948A-4FD2-9A1C-EDABDA2999B1}.Debug|Win32.Build.0 = Debug|Win32
+		{5B089A0E-948A-4FD2-9A1C-EDABDA2999B1}.Release|Win32.ActiveCfg = Release|Win32
+		{5B089A0E-948A-4FD2-9A1C-EDABDA2999B1}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

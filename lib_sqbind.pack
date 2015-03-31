@@ -1,0 +1,7 @@
+
+out sqbind
++sr src/xtra/_xsqbind.cpp
++sr src/sqbind/*.cpp
++hr src/*.h
++hr src/sqbind/*.inl
++i  xsqbind.h
