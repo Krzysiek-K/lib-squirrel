@@ -1,6 +1,9 @@
 
-#include "sqbind.h"
 #include <base.h>
+
+#define XSQ_VEC2	base::vec2
+#define XSQ_VEC3	base::vec3
+#include "sqbind.h"
 
 using namespace std;
 using namespace base;
@@ -51,15 +54,48 @@ XSQ_STRUCT(box_t,"box",
 );
 
 
+vec3 bigtest3(vec3 a,vec3 b,vec3 c)
+{
+	printf("bigtest 3\n");
+	printf("  %.0f %.0f %.0f\n",a.x,a.y,a.z);
+	printf("  %.0f %.0f %.0f\n",b.x,b.y,b.z);
+	printf("  %.0f %.0f %.0f\n",c.x,c.y,c.z);
+	return vec3(10,11,12);
+}
+XSQ_REGISTER_FN(bigtest3);
+
+vec2 bigtest2(vec2 a,vec2 b,vec2 c)
+{
+	printf("bigtest 2\n");
+	printf("  %.0f %.0f\n",a.x,a.y);
+	printf("  %.0f %.0f\n",b.x,b.y);
+	printf("  %.0f %.0f\n",c.x,c.y);
+	return vec2(7,8);
+}
+XSQ_REGISTER_FN(bigtest2);
+
+box_t bigtestb(box_t a,box_t b,box_t c)
+{
+	printf("bigtest box\n");
+	printf("  '%s' -> %d %d %d %d\n",a.name.c_str(),a.x,a.y,a.w,a.h);
+	printf("  '%s' -> %d %d %d %d\n",b.name.c_str(),b.x,b.y,b.w,b.h);
+	printf("  '%s' -> %d %d %d %d\n",c.name.c_str(),c.x,c.y,c.w,c.h);
+	box_t box = { "goo", 22, 23, 24, 25 };
+	return box;
+}
+XSQ_REGISTER_FN(bigtestb);
+
+
  
 int main(int argc, char **argv)
 {
 	vm.Init();
 
-    const SQChar *program = "::print(\"Hello World, I'm back!\\n\");";
+    const SQChar *program = "print(\"Hello World, I'm back!\\n\");";
 	vm.Set("x",8);
 	vm.DoString(program);
-	vm.DoFile("../test1.nut");
+	vm.DoFile("../vector.nut");
+	vm.DoFile("../test3.nut");
 	printf("foo returned %d\n",vm.RunRet<int>("foo",4));
 	vm.Run("foo",3.14f);
 	vm.Run("foo","Hello!");
@@ -67,7 +103,7 @@ int main(int argc, char **argv)
 	box_t b = { "A box", 10, 11, 20, 22 };
 	vm.Run("boxer",b);
 	printf("x = %d\n",vm.GetInt("x"));
-	b = vm.RunRet<box_t>("make_box");
+	b = vm.RunRet<box_t>("make_box","hello",vec2(31,32),vec2(33,34));
 	printf("box = '%s' %d %d %d %d\n",b.name.c_str(),b.x,b.y,b.w,b.h);
 
 

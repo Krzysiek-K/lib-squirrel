@@ -1,4 +1,4 @@
-// ---------------- Library -- generated on 11.12.2014  19:42 ----------------
+// ---------------- Library -- generated on 18.4.2015  11:46 ----------------
 
 
 
@@ -45,6 +45,7 @@ using namespace std;
 #include <string.h>
 #include <string>
 #include <vector>
+
 
 #if !defined(__clang__)
 	#define __has_feature(x)	0
@@ -585,7 +586,49 @@ unsigned long long xsq_getfiletime( const char *path );
 		static const char *_name() { return #name; }		\
 		static const char *_name_sq() { return sqname; }	\
 		static const char *_member_list() { return #st; }	\
-	};
+	}; \
+	namespace sqb \
+	{ \
+		template<> struct TypeInfo<name> \
+		{ \
+			enum \
+			{ \
+				kTypeID = kScriptVarTypeObject, \
+				kTypeSize = sizeof(name), \
+				kTypeMask = '.', \
+				kTypeIsInstance = SQFalse, \
+			}; \
+			const SQChar *m_typeName; \
+			inline TypeInfo() : m_typeName(_SC(sqname)) \
+			{ \
+			} \
+			inline operator ScriptVarType() const \
+			{ \
+				return static_cast<ScriptVarType>(kTypeID); \
+			} \
+		}; \
+		template<> inline bool Match<name>(TypeWrapper<name>, HSQUIRRELVM vm, SQInteger idx)					{ return true; } \
+		template<> inline bool Match<name &>(TypeWrapper<name &>, HSQUIRRELVM vm, SQInteger idx)				{ return true; } \
+		template<> inline bool Match<const name &>(TypeWrapper<const name &>, HSQUIRRELVM vm, SQInteger idx)	{ return true; } \
+		template<> inline name &Get<name>(TypeWrapper<name>, HSQUIRRELVM vm, SQInteger idx) \
+		{ \
+			SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm); \
+			static name value; \
+			value = name(); \
+			sqvm.xsq_struct_get(&value,#st,idx); \
+			return value; \
+		} \
+		template<> inline SQRESULT Push<name>(HSQUIRRELVM vm, name &value) \
+		{ \
+			SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm); \
+			return sqvm._sq_push(value); \
+		} \
+		template<> inline SQRESULT Push<name>(HSQUIRRELVM vm, const name &value) \
+		{ \
+			SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm); \
+			return sqvm._sq_push(value); \
+		} \
+	}
 
 
 
@@ -615,11 +658,12 @@ class SqRef;
 
 class SqVM {
 public:
-	SqVM() : vm(NULL), first_free_handle(NULL), first_busy_handle(NULL) {}
+	SqVM() : vm(NULL), first_free_handle(NULL), first_busy_handle(NULL), last_stack_size(1024) {}
 	~SqVM() { DeInit(); }
 
 	void Init(int stack_size = 1024);
 	void DeInit();
+	void Reset();
 
 	bool DoFile(const char *path);
 	bool DoString(const char *code);
@@ -636,7 +680,7 @@ public:
 		sq_pushroottable(vm);
 		sq_pushstring(vm,name,-1);
 		if(SQ_SUCCEEDED(sq_get(vm,-2)))
-			_sq_get(out);
+			_sq_get(out,-1);
 		sq_settop(vm,top);
 		return out;
 	}
@@ -649,7 +693,7 @@ public:
 		sq_pushroottable(vm);
 		sq_pushstring(vm,name,-1);
 		if(SQ_SUCCEEDED(sq_get(vm,-2)))
-			ok = _sq_get(out);
+			ok = _sq_get(out,-1);
 		else
 			out = out();
 		sq_settop(vm,top);
@@ -722,7 +766,7 @@ public:
 #define A(n)	,const T##n a##n
 #define CODE	) { int args=1, top=sq_gettop(vm); sq_pushroottable(vm); sq_pushstring(vm,fn,-1); if(SQ_SUCCEEDED(sq_get(vm,-2))) { sq_pushroottable(vm);
 #define P(n)	args+=_sq_push(a##n);
-#define END		sq_call(vm,args,true,true); R ret = R(); _sq_get(ret); sq_settop(vm,top); return ret; } sq_settop(vm,top); return R(); }
+#define END		sq_call(vm,args,true,true); R ret = R(); _sq_get(ret,-1); sq_settop(vm,top); return ret; } sq_settop(vm,top); return R(); }
 	T > FN CODE END
 	T ,C(1) > FN A(1) CODE P(1) END
 	T ,C(1),C(2) > FN A(1) A(2) CODE P(1) P(2) END
@@ -773,7 +817,7 @@ private:
 	ObjectHandle			*first_free_handle;
 	ObjectHandle			*first_busy_handle;
 	std::vector<ScriptFile>	script_files;
-
+	int						last_stack_size;
 
 
 	static void print_callback(HSQUIRRELVM vm, const SQChar *format, ...);
@@ -784,12 +828,14 @@ private:
 
 	bool getstackobj(SqRef &out,int index);
 
+public:
 	template<class T>	int _sq_push(T a)					{ return xsq_struct_push(&a,T::_member_list()); }
-	template<class T>	bool _sq_get(T &out)				{ return xsq_struct_get(&out,T::_member_list()); }
+	template<class T>	bool _sq_get(T &out,int depth)		{ return xsq_struct_get(&out,T::_member_list(),depth); }
 
 	int xsq_struct_push(const void *st,const char *members);
-	bool xsq_struct_get(void *st,const char *members);
+	bool xsq_struct_get(void *st,const char *members,int depth);
 
+private:
 
 	SqVM(const SqVM &);				// disabled
 	void operator =(const SqVM &);	// disabled
@@ -835,7 +881,7 @@ public:
 		if(top==int(0x8000000))
 			return T();
 		T out = T();
-		handle->vm->_sq_get(out);
+		handle->vm->_sq_get(out,-1);
 		sq_settop(handle->vm->vm,top);
 		return out;
 	}
@@ -849,7 +895,7 @@ public:
 			out = T();
 			return false;
 		}
-		handle->vm->_sq_get(out);
+		handle->vm->_sq_get(out,-1);
 		sq_settop(handle->vm->vm,top);
 		return true;
 	}
@@ -921,7 +967,7 @@ public:
 					int args=1, top=sq_gettop(vm);				\
 					bool ok=false; sq_pushobject(vm,handle->hobj); sq_pushstring(vm,fn,-1); if(SQ_SUCCEEDED(sq_get(vm,-2))) { sq_pushobject(vm,handle->hobj);
 #define P(n)	args+=handle->vm->_sq_push(a##n);
-#define END		sq_call(vm,args,true,true); R ret = R(); handle->vm->_sq_get(ret); sq_settop(vm,top); return ret; } sq_settop(vm,top); return R(); }
+#define END		sq_call(vm,args,true,true); R ret = R(); handle->vm->_sq_get(ret,-1); sq_settop(vm,top); return ret; } sq_settop(vm,top); return R(); }
 	T > FN CODE END
 	T ,C(1) > FN A(1) CODE P(1) END
 	T ,C(1),C(2) > FN A(1) A(2) CODE P(1) P(2) END
@@ -989,12 +1035,125 @@ template<>	inline		int SqVM::_sq_push(const char *a)		{ sq_pushstring(vm,a,-1);	
 template<>	inline		int SqVM::_sq_push(const std::string a)	{ sq_pushstring(vm,a.c_str(),-1);	return 1; }
 template<>	inline		int SqVM::_sq_push(std::string *a)		{ sq_pushstring(vm,a->c_str(),-1);	return 1; }
 template<>	inline		int SqVM::_sq_push(SqRef a)				{ if(a.handle) sq_pushobject(vm,a.handle->hobj); else sq_pushnull(vm);	return 1; }
-template<>	inline		bool SqVM::_sq_get(int &out)			{ if(SQ_FAILED(sq_getinteger(vm,-1,&out)))	{ out=0; return false; } return true; }
-template<>	inline		bool SqVM::_sq_get(float &out)			{ if(SQ_FAILED(sq_getfloat(vm,-1,&out)))	{ out=0; return false; } return true; }
-template<>	inline		bool SqVM::_sq_get(std::string &out)	{ sq_tostring(vm,-1); sq_remove(vm,-2); const char *s=NULL; if(SQ_FAILED(sq_getstring(vm,-1,&s)) || !s) { out.clear(); return false; } out=s; return true; }
-template<>	inline		bool SqVM::_sq_get(SqRef &out)			{ return getstackobj(out,-1); }
+
+template<>	inline		bool SqVM::_sq_get(int &out,int depth)			{ if(SQ_FAILED(sq_getinteger(vm,depth,&out)))	{ out=0; return false; } return true; }
+template<>	inline		bool SqVM::_sq_get(float &out,int depth)		{ if(SQ_FAILED(sq_getfloat(vm,depth,&out)))	{ out=0; return false; } return true; }
+template<>				bool SqVM::_sq_get(std::string &out,int depth);
+template<>	inline		bool SqVM::_sq_get(SqRef &out,int depth)		{ return getstackobj(out,depth); }
 
 
+#ifdef XSQ_VEC2
+template<> inline int SqVM::_sq_push(XSQ_VEC2 v)
+{
+	int top=sq_gettop(vm);
+	bool ok=false;
+	sq_pushroottable(vm);
+	sq_pushstring(vm, "vec2", -1);
+	if( SQ_SUCCEEDED(sq_get(vm, -2)) )
+	{
+		sq_pushroottable(vm);
+		_sq_push(v.x);
+		_sq_push(v.y);
+		if( SQ_SUCCEEDED(sq_call(vm, 3, true, true)) )
+		{
+								// roottable, closure, value
+			sq_remove(vm,-2);	// roottable, value
+			sq_remove(vm,-2);	// value
+			ok = true;
+		}
+	}
+	if(!ok)
+		sq_settop( vm, top );
+	return ok ? 1 : 0;
+}
+#endif
+
+#ifdef XSQ_VEC3
+template<> inline int SqVM::_sq_push(XSQ_VEC3 v)
+{
+	int top=sq_gettop(vm);
+	bool ok=false;
+	sq_pushroottable(vm);
+	sq_pushstring(vm, "vec3", -1);
+	if( SQ_SUCCEEDED(sq_get(vm, -2)) )
+	{
+		sq_pushroottable(vm);
+		_sq_push(v.x);
+		_sq_push(v.y);
+		_sq_push(v.z);
+		if( SQ_SUCCEEDED(sq_call(vm, 4, true, true)) )
+		{
+								// roottable, closure, value
+			sq_remove(vm,-2);	// roottable, value
+			sq_remove(vm,-2);	// value
+			ok = true;
+		}
+	}
+	if(!ok)
+		sq_settop( vm, top );
+	return ok ? 1 : 0;
+}
+#endif
+
+#ifdef XSQ_VEC2
+template<> inline bool SqVM::_sq_get(XSQ_VEC2 &out,int depth)
+{
+	int top = sq_gettop(vm);
+	if(depth<0) depth = top + depth + 1;
+
+	do {
+	
+		sq_pushstring(vm, "___immutable_x", -1);
+		if( SQ_FAILED(sq_get(vm, depth)) ) break;
+		if( SQ_FAILED(sq_getfloat(vm,-1,&out.x))) break;
+
+		sq_pushstring(vm, "___immutable_y", -1);
+		if( SQ_FAILED(sq_get(vm, depth)) ) break;
+		if( SQ_FAILED(sq_getfloat(vm,-1,&out.y))) break;
+
+		sq_settop( vm, top );
+		return true;
+
+	} while(0);
+
+	out.x = out.y = 0;
+
+	sq_settop( vm, top );
+	return false;
+}
+#endif
+
+#ifdef XSQ_VEC3
+template<> inline bool SqVM::_sq_get(XSQ_VEC3 &out,int depth)
+{
+	int top = sq_gettop(vm);
+	if(depth<0) depth = top + depth + 1;
+
+	do {
+	
+		sq_pushstring(vm, "___immutable_x", -1);
+		if( SQ_FAILED(sq_get(vm, depth)) ) break;
+		if( SQ_FAILED(sq_getfloat(vm,-1,&out.x))) break;
+
+		sq_pushstring(vm, "___immutable_y", -1);
+		if( SQ_FAILED(sq_get(vm, depth)) ) break;
+		if( SQ_FAILED(sq_getfloat(vm,-1,&out.y))) break;
+
+		sq_pushstring(vm, "___immutable_z", -1);
+		if( SQ_FAILED(sq_get(vm, depth)) ) break;
+		if( SQ_FAILED(sq_getfloat(vm,-1,&out.z))) break;
+
+		sq_settop( vm, top );
+		return true;
+
+	} while(0);
+
+	out.x = out.y = out.z = 0;
+
+	sq_settop( vm, top );
+	return false;
+}
+#endif
 
 
 
@@ -1141,11 +1300,20 @@ SQUIRREL_API SQRESULT sqstd_register_bloblib(HSQUIRRELVM v);
 
 
 
+// -------------------------------- helper macros --------------------------------
+
+
 #define __IS_RANGE(x,a,b)		( (x)>=(a) && (x)<=(b) )
 #define __IS_ALPHA(x)			( __IS_RANGE((x),'a','z') || __IS_RANGE((x),'A','Z') )
 #define __IS_NUM(x)				__IS_RANGE((x),'0','9')
 #define __IS_IDENT_START(x)		( __IS_ALPHA(x) || ((x)=='_') )
 #define __IS_IDENT_CHAR(x)		( __IS_ALPHA(x) || __IS_NUM(x) || ((x)=='_') )
+
+
+
+
+// -------------------------------- helper functions --------------------------------
+
 
 static void _parse_white(const char *&s)
 {
@@ -1167,6 +1335,37 @@ static bool _parse_ident(const char *&s,string &out)
 	return true;
 }
 
+
+
+// -------------------------------- _sq_get/_sq_push template specializations --------------------------------
+
+
+template<> bool SqVM::_sq_get(std::string &out,int depth)
+{
+	if(SQ_FAILED(sq_tostring(vm,depth)))
+	{
+		out.clear();
+		return false;
+	}
+	const char *s=NULL;
+	if(SQ_FAILED(sq_getstring(vm,-1,&s)) || !s)
+	{
+		out.clear();
+		sq_remove(vm,-1);
+		return false;
+	}
+	out=s;
+	sq_remove(vm,-1);
+	return true;
+}
+
+
+
+
+
+
+
+// -------------------------------- SqRef --------------------------------
 
 
 int SqRef::_get_base(const char *name)
@@ -1193,6 +1392,11 @@ int SqRef::_set_base(const char *name)
 	sq_pushstring(vm,name,-1);
 	return top;
 }
+
+
+
+
+// -------------------------------- ObjectHandle --------------------------------
 
 
 SqVM::ObjectHandle::ObjectHandle(SqVM &_vm) : vm(&_vm), refcount(0)
@@ -1235,6 +1439,8 @@ void SqVM::ObjectHandle::Free()
 
 
 
+
+// -------------------------------- SqVM --------------------------------
 
 
 void SqVM::print_callback(HSQUIRRELVM vm, const SQChar *fmt, ...)
@@ -1317,6 +1523,8 @@ void SqVM::print_compile_error(HSQUIRRELVM vm, const SQChar* description, const 
 
 void SqVM::Init(int stack_size)
 {
+	last_stack_size = stack_size;
+
 	DeInit();
 	if(vm) sq_close(vm);
 
@@ -1362,6 +1570,17 @@ void SqVM::DeInit()
 
 	script_files.clear();
 }
+
+void SqVM::Reset()
+{
+	vector<ScriptFile> files = script_files;
+
+	Init(last_stack_size);
+	for(int i=0;i<(int)files.size();i++)
+		AddFile(files[i].path.c_str());
+}
+
+
 
 bool SqVM::DoFile(const char *path)
 {
@@ -1518,7 +1737,7 @@ int SqVM::xsq_struct_push(const void *st,const char *members)
 }
 
 
-bool SqVM::xsq_struct_get(void *st,const char *members)
+bool SqVM::xsq_struct_get(void *st,const char *members,int depth)
 {
 	string type, name;
 
@@ -1527,6 +1746,8 @@ bool SqVM::xsq_struct_get(void *st,const char *members)
 
 
 	// gen elments
+	int top = sq_gettop(vm);
+	if(depth<0) depth = top + depth + 1;
 	
 	const char *s = members;
 	const char *src = (const char*)st;
@@ -1543,11 +1764,11 @@ bool SqVM::xsq_struct_get(void *st,const char *members)
 			return false;
 		}
 		sq_pushstring(vm,name.c_str(),-1);
-		if(SQ_SUCCEEDED(sq_get(vm,-2)))
+		if(SQ_SUCCEEDED(sq_get(vm,depth)))
 		{
-				 if(type=="int"		) { _sq_get(*(int*)src);		src+=sizeof(int);		}
-			else if(type=="float"	) { _sq_get(*(float*)src);		src+=sizeof(float);		}
-			else if(type=="string"	) { _sq_get(*(string*)src);		src+=sizeof(string);	}
+				 if(type=="int"		) { _sq_get(*(int*)src,-1);			src+=sizeof(int);		}
+			else if(type=="float"	) { _sq_get(*(float*)src,-1);		src+=sizeof(float);		}
+			else if(type=="string"	) { _sq_get(*(string*)src,-1);		src+=sizeof(string);	}
 			else
 			{
 				print_error_callback(vm,"ERROR bad type '%s' in structure: \"%s\"\n",type.c_str(),members);

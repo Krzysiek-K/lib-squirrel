@@ -29,11 +29,20 @@ using namespace std;
 
 
 
+// -------------------------------- helper macros --------------------------------
+
+
 #define __IS_RANGE(x,a,b)		( (x)>=(a) && (x)<=(b) )
 #define __IS_ALPHA(x)			( __IS_RANGE((x),'a','z') || __IS_RANGE((x),'A','Z') )
 #define __IS_NUM(x)				__IS_RANGE((x),'0','9')
 #define __IS_IDENT_START(x)		( __IS_ALPHA(x) || ((x)=='_') )
 #define __IS_IDENT_CHAR(x)		( __IS_ALPHA(x) || __IS_NUM(x) || ((x)=='_') )
+
+
+
+
+// -------------------------------- helper functions --------------------------------
+
 
 static void _parse_white(const char *&s)
 {
@@ -55,6 +64,37 @@ static bool _parse_ident(const char *&s,string &out)
 	return true;
 }
 
+
+
+// -------------------------------- _sq_get/_sq_push template specializations --------------------------------
+
+
+template<> bool SqVM::_sq_get(std::string &out,int depth)
+{
+	if(SQ_FAILED(sq_tostring(vm,depth)))
+	{
+		out.clear();
+		return false;
+	}
+	const char *s=NULL;
+	if(SQ_FAILED(sq_getstring(vm,-1,&s)) || !s)
+	{
+		out.clear();
+		sq_remove(vm,-1);
+		return false;
+	}
+	out=s;
+	sq_remove(vm,-1);
+	return true;
+}
+
+
+
+
+
+
+
+// -------------------------------- SqRef --------------------------------
 
 
 int SqRef::_get_base(const char *name)
@@ -81,6 +121,11 @@ int SqRef::_set_base(const char *name)
 	sq_pushstring(vm,name,-1);
 	return top;
 }
+
+
+
+
+// -------------------------------- ObjectHandle --------------------------------
 
 
 SqVM::ObjectHandle::ObjectHandle(SqVM &_vm) : vm(&_vm), refcount(0)
@@ -123,6 +168,8 @@ void SqVM::ObjectHandle::Free()
 
 
 
+
+// -------------------------------- SqVM --------------------------------
 
 
 void SqVM::print_callback(HSQUIRRELVM vm, const SQChar *fmt, ...)
@@ -205,6 +252,8 @@ void SqVM::print_compile_error(HSQUIRRELVM vm, const SQChar* description, const 
 
 void SqVM::Init(int stack_size)
 {
+	last_stack_size = stack_size;
+
 	DeInit();
 	if(vm) sq_close(vm);
 
@@ -250,6 +299,17 @@ void SqVM::DeInit()
 
 	script_files.clear();
 }
+
+void SqVM::Reset()
+{
+	vector<ScriptFile> files = script_files;
+
+	Init(last_stack_size);
+	for(int i=0;i<(int)files.size();i++)
+		AddFile(files[i].path.c_str());
+}
+
+
 
 bool SqVM::DoFile(const char *path)
 {
@@ -406,7 +466,7 @@ int SqVM::xsq_struct_push(const void *st,const char *members)
 }
 
 
-bool SqVM::xsq_struct_get(void *st,const char *members)
+bool SqVM::xsq_struct_get(void *st,const char *members,int depth)
 {
 	string type, name;
 
@@ -415,6 +475,8 @@ bool SqVM::xsq_struct_get(void *st,const char *members)
 
 
 	// gen elments
+	int top = sq_gettop(vm);
+	if(depth<0) depth = top + depth + 1;
 	
 	const char *s = members;
 	const char *src = (const char*)st;
@@ -431,11 +493,11 @@ bool SqVM::xsq_struct_get(void *st,const char *members)
 			return false;
 		}
 		sq_pushstring(vm,name.c_str(),-1);
-		if(SQ_SUCCEEDED(sq_get(vm,-2)))
+		if(SQ_SUCCEEDED(sq_get(vm,depth)))
 		{
-				 if(type=="int"		) { _sq_get(*(int*)src);		src+=sizeof(int);		}
-			else if(type=="float"	) { _sq_get(*(float*)src);		src+=sizeof(float);		}
-			else if(type=="string"	) { _sq_get(*(string*)src);		src+=sizeof(string);	}
+				 if(type=="int"		) { _sq_get(*(int*)src,-1);			src+=sizeof(int);		}
+			else if(type=="float"	) { _sq_get(*(float*)src,-1);		src+=sizeof(float);		}
+			else if(type=="string"	) { _sq_get(*(string*)src,-1);		src+=sizeof(string);	}
 			else
 			{
 				print_error_callback(vm,"ERROR bad type '%s' in structure: \"%s\"\n",type.c_str(),members);
