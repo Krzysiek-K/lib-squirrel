@@ -5,8 +5,12 @@
 #define XSQ_VEC3	base::vec3
 #include "sqbind.h"
 
+#include "sqrat.h"
+
+
 using namespace std;
 using namespace base;
+using namespace Sqrat;
 
 
 
@@ -46,7 +50,7 @@ XSQ_REGISTER_FN(bar);
 
 
 XSQ_STRUCT(box_t,"box",
-	string name;
+	std::string name;
 	int x;
 	int y;
 	int w;
@@ -86,11 +90,38 @@ box_t bigtestb(box_t a,box_t b,box_t c)
 XSQ_REGISTER_FN(bigtestb);
 
 
- 
+void myFunc() { printf("MyFunc\n"); }
+
+class MyClass {
+public:
+	MyClass() { printf("+MyClass\n"); }
+	~MyClass() { printf("-MyClass\n"); }
+	void Foo() { printf("Foo: bar = %d\n",bar); }
+	int bar;
+};
+
+void BindRat()
+{
+	Table myTable(vm());
+	myTable.Func("MyFunc", &myFunc);
+
+	Class<MyClass> myClass(vm(),"MyClass");
+	myClass.Func("Foo", &MyClass::Foo);
+	myClass.Var("bar", &MyClass::bar);
+
+	RootTable(vm()).Bind("MyTable", myTable);
+	RootTable(vm()).Bind("MyClass", myClass);
+}
+
+
 int main(int argc, char **argv)
 {
 	vm.Init();
 
+	BindRat();
+	vm.DoFile("rattest.nut");
+
+/*
     const SQChar *program = "print(\"Hello World, I'm back!\\n\");";
 	vm.Set("x",8);
 	vm.DoString(program);
@@ -105,7 +136,7 @@ int main(int argc, char **argv)
 	printf("x = %d\n",vm.GetInt("x"));
 	b = vm.RunRet<box_t>("make_box","hello",vec2(31,32),vec2(33,34));
 	printf("box = '%s' %d %d %d %d\n",b.name.c_str(),b.x,b.y,b.w,b.h);
-
+*/
 
 	printf("\n\n\n");
 	system("pause");

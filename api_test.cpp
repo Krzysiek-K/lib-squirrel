@@ -45,6 +45,12 @@ void bar(int test)
 }
 XSQ_REGISTER_FN(bar);
 
+void bar3(int a,int b,int c)
+{
+	printf("\nBar3 is %d %d %d\n",a,b,c);
+}
+XSQ_REGISTER_FN(bar3);
+
 
 void otest(SqRef o)
 {
@@ -54,7 +60,7 @@ XSQ_REGISTER_FN(otest);
 
 SqRef otest2()
 {
-	SqRef r = vm.NewObject();
+	SqRef r = vm.NewTable();
 	r.Set("x",13);
 	r.Set("y",21);
 	return r;
@@ -195,8 +201,8 @@ int main(int argc, char **argv)
 	//p = vm.ToObject(21);
 	//vm.Run("test2",o,p);
 
-	vec3 v = vm.Get<vec3>("vv");
-	printf("%f %f %f\n",v.x,v.y,v.z);
+//	vec3 v = vm.Get<vec3>("vv");
+//	printf("%f %f %f\n",v.x,v.y,v.z);
 
 	printf("\n\n\n");
 	system("pause");

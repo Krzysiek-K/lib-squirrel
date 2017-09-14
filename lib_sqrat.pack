@@ -1,0 +1,4 @@
+
+out sqrat
++hr src/*.h
++i  sqrat.h

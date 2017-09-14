@@ -22,4 +22,7 @@
     </ClCompile>
     <ClCompile Include="test.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="rattest.nut" />
+  </ItemGroup>
 </Project>

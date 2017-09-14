@@ -1,4 +1,4 @@
-// ---------------- Library -- generated on 18.4.2015  11:46 ----------------
+// ---------------- Library -- generated on 14.9.2017  22:24 ----------------
 
 
 
@@ -658,10 +658,23 @@ class SqRef;
 
 class SqVM {
 public:
+	enum {
+		LIB_BLOB	= (1<<0),
+		LIB_IO		= (1<<1),
+		LIB_MATH	= (1<<2),
+		LIB_STRING	= (1<<3),
+		LIB_SYSTEM	= (1<<4),
+
+		CHECK_RUN_MODIFIED				= 0,
+		CHECK_RUN_ALL					= 1,
+		CHECK_RUN_MODIFIED_AND_LATER	= 2,
+	};
+
+
 	SqVM() : vm(NULL), first_free_handle(NULL), first_busy_handle(NULL), last_stack_size(1024) {}
 	~SqVM() { DeInit(); }
 
-	void Init(int stack_size = 1024);
+	void Init(int stack_size = 1024,int libflags=LIB_BLOB|LIB_MATH|LIB_STRING);
 	void DeInit();
 	void Reset();
 
@@ -669,7 +682,12 @@ public:
 	bool DoString(const char *code);
 
 	bool AddFile(const char *path);
-	int  CheckFiles();
+	int  CheckFiles(int check_mode=CHECK_RUN_MODIFIED);
+
+	void RunGC()	{ sq_collectgarbage(vm); }
+
+	HSQUIRRELVM operator ()() { return vm; }
+
 
 
 	template<class T>
@@ -720,7 +738,7 @@ public:
 	}
 
 	template<class T> SqRef ToObject(const T v);
-	SqRef NewObject();
+	SqRef NewTable();
 
 
 	//template<class A1>
@@ -823,7 +841,7 @@ private:
 	static void print_callback(HSQUIRRELVM vm, const SQChar *format, ...);
 	static void print_error_callback(HSQUIRRELVM vm, const SQChar *format, ...);
 	static void print_stack_trace(HSQUIRRELVM vm);
-	static int	print_runtime_error(HSQUIRRELVM vm);
+	static SQInteger print_runtime_error(HSQUIRRELVM vm);
 	static void print_compile_error(HSQUIRRELVM vm, const SQChar* description, const SQChar* file, SQInteger line, SQInteger column);
 
 	bool getstackobj(SqRef &out,int index);
@@ -1017,7 +1035,7 @@ SqRef SqVM::ToObject(const T v)
 	return ref;
 }
 
-inline SqRef SqVM::NewObject()
+inline SqRef SqVM::NewTable()
 {
 	SqRef ref;
 	int top = sq_gettop(vm);
@@ -1036,7 +1054,12 @@ template<>	inline		int SqVM::_sq_push(const std::string a)	{ sq_pushstring(vm,a.
 template<>	inline		int SqVM::_sq_push(std::string *a)		{ sq_pushstring(vm,a->c_str(),-1);	return 1; }
 template<>	inline		int SqVM::_sq_push(SqRef a)				{ if(a.handle) sq_pushobject(vm,a.handle->hobj); else sq_pushnull(vm);	return 1; }
 
-template<>	inline		bool SqVM::_sq_get(int &out,int depth)			{ if(SQ_FAILED(sq_getinteger(vm,depth,&out)))	{ out=0; return false; } return true; }
+template<>	inline		bool SqVM::_sq_get(int &out,int depth) {
+							SQInteger i;
+							if(SQ_FAILED(sq_getinteger(vm,depth,&i)))	{ out=0; return false; }
+							out = i;
+							return true;
+						}
 template<>	inline		bool SqVM::_sq_get(float &out,int depth)		{ if(SQ_FAILED(sq_getfloat(vm,depth,&out)))	{ out=0; return false; } return true; }
 template<>				bool SqVM::_sq_get(std::string &out,int depth);
 template<>	inline		bool SqVM::_sq_get(SqRef &out,int depth)		{ return getstackobj(out,depth); }
@@ -1127,6 +1150,7 @@ template<> inline bool SqVM::_sq_get(XSQ_VEC2 &out,int depth)
 template<> inline bool SqVM::_sq_get(XSQ_VEC3 &out,int depth)
 {
 	int top = sq_gettop(vm);
+	int d0 = depth;
 	if(depth<0) depth = top + depth + 1;
 
 	do {
@@ -1297,7 +1321,25 @@ SQUIRREL_API SQRESULT sqstd_register_bloblib(HSQUIRRELVM v);
 
 
 // <--- back to _xsquirrel.cpp
+// ---- #include "sqstdsystem.h"
+// ---> including sqstdsystem.h
+/*	see copyright notice in squirrel.h */
+#ifndef _SQSTD_SYSTEMLIB_H_
+#define _SQSTD_SYSTEMLIB_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+SQUIRREL_API SQInteger sqstd_register_systemlib(HSQUIRRELVM v);
+
+#ifdef __cplusplus
+} /*extern "C"*/
+#endif
+
+#endif /* _SQSTD_SYSTEMLIB_H_ */
+
+// <--- back to _xsquirrel.cpp
 
 
 // -------------------------------- helper macros --------------------------------
@@ -1498,7 +1540,7 @@ void SqVM::print_stack_trace(HSQUIRRELVM vm)
     }
 }
  
-int SqVM::print_runtime_error(HSQUIRRELVM vm)
+SQInteger SqVM::print_runtime_error(HSQUIRRELVM vm)
 {
     const SQChar* error_message = NULL;
     if(sq_gettop(vm) >= 1)
@@ -1518,10 +1560,7 @@ void SqVM::print_compile_error(HSQUIRRELVM vm, const SQChar* description, const 
 
 
 
-
-
-
-void SqVM::Init(int stack_size)
+void SqVM::Init(int stack_size,int libflags)
 {
 	last_stack_size = stack_size;
 
@@ -1536,9 +1575,11 @@ void SqVM::Init(int stack_size)
     sq_newclosure(vm, print_runtime_error, 0);
     sq_seterrorhandler(vm);
 
-	sq_pushroottable(vm);		sqstd_register_mathlib(vm);
-	sq_pushroottable(vm);		sqstd_register_stringlib(vm);
-	sq_pushroottable(vm);		sqstd_register_bloblib(vm);
+	if( libflags & LIB_MATH		)	{ sq_pushroottable(vm);		sqstd_register_mathlib(vm);		}
+	if( libflags & LIB_STRING	)	{ sq_pushroottable(vm);		sqstd_register_stringlib(vm);	}
+	if( libflags & LIB_BLOB		)	{ sq_pushroottable(vm);		sqstd_register_bloblib(vm);		}
+	if( libflags & LIB_IO		)	{ sq_pushroottable(vm);		sqstd_register_iolib(vm);		}
+	if( libflags & LIB_SYSTEM	)	{ sq_pushroottable(vm);		sqstd_register_systemlib(vm);	}
 
 	for(int i=0;i<(int)__xsq_register::regs().size();i++)
 		__xsq_register::regs()[i](vm);
@@ -1567,6 +1608,7 @@ void SqVM::DeInit()
 
 	// close VM
 	if(vm) sq_close(vm);
+	vm = 0;
 
 	script_files.clear();
 }
@@ -1621,13 +1663,17 @@ bool SqVM::AddFile(const char *path)
 			sf.path.clear();
 			break;
 		}
+
+	bool retval = DoFile(path);
+
+	// add file after executing it, so files included will go before it
 	if(sf.path.size()>0)
 		script_files.push_back(sf);
 
-	return DoFile(path);
+	return retval;
 }
 
-int SqVM::CheckFiles()
+int SqVM::CheckFiles(int check_mode)
 {
 	int n = 0;
 	for(int i=0;i<(int)script_files.size();i++)
@@ -1636,11 +1682,23 @@ int SqVM::CheckFiles()
 		unsigned long long t = xsq_getfiletime(sf.path.c_str());
 		if(t!=sf.timestamp)
 		{
-			DoFile(sf.path.c_str());
+			if( check_mode!=CHECK_RUN_ALL )
+				DoFile(sf.path.c_str());
 			sf.timestamp = t;
 			n++;
 		}
+		else if( n>0 && check_mode==CHECK_RUN_MODIFIED_AND_LATER )
+		{
+			DoFile(sf.path.c_str());	// run because earlier was ran
+		}
 	}
+
+	if( n>0 && check_mode==CHECK_RUN_ALL )
+	{
+		for(int i=0;i<(int)script_files.size();i++)
+			DoFile(script_files[i].path.c_str());
+	}
+
 	return n;
 }
 
@@ -4482,22 +4540,6 @@ SQInteger sqstd_register_stringlib(HSQUIRRELVM v)
 #include <stdio.h>
 // ---- #include <sqstdsystem.h>
 // ---> including sqstdsystem.h
-/*	see copyright notice in squirrel.h */
-#ifndef _SQSTD_SYSTEMLIB_H_
-#define _SQSTD_SYSTEMLIB_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-SQUIRREL_API SQInteger sqstd_register_systemlib(HSQUIRRELVM v);
-
-#ifdef __cplusplus
-} /*extern "C"*/
-#endif
-
-#endif /* _SQSTD_SYSTEMLIB_H_ */
-
 // <--- back to sqstdsystem.cpp
 
 #ifdef SQUNICODE

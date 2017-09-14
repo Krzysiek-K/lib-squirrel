@@ -1,5 +1,6 @@
 @echo off
 echo Repacking library...
-lipack.exe lib_squirrel.pack
-lipack.exe lib_sqbind.pack
+bin\lipack.exe lib_squirrel.pack
+bin\lipack.exe lib_sqbind.pack
+bin\lipack.exe lib_sqrat.pack
 pause

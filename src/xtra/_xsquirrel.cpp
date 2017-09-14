@@ -26,7 +26,7 @@ using namespace std;
 #include "sqstdmath.h"
 #include "sqstdstring.h"
 #include "sqstdblob.h"
-
+#include "sqstdsystem.h"
 
 
 // -------------------------------- helper macros --------------------------------
@@ -227,7 +227,7 @@ void SqVM::print_stack_trace(HSQUIRRELVM vm)
     }
 }
  
-int SqVM::print_runtime_error(HSQUIRRELVM vm)
+SQInteger SqVM::print_runtime_error(HSQUIRRELVM vm)
 {
     const SQChar* error_message = NULL;
     if(sq_gettop(vm) >= 1)
@@ -247,10 +247,7 @@ void SqVM::print_compile_error(HSQUIRRELVM vm, const SQChar* description, const 
 
 
 
-
-
-
-void SqVM::Init(int stack_size)
+void SqVM::Init(int stack_size,int libflags)
 {
 	last_stack_size = stack_size;
 
@@ -265,9 +262,11 @@ void SqVM::Init(int stack_size)
     sq_newclosure(vm, print_runtime_error, 0);
     sq_seterrorhandler(vm);
 
-	sq_pushroottable(vm);		sqstd_register_mathlib(vm);
-	sq_pushroottable(vm);		sqstd_register_stringlib(vm);
-	sq_pushroottable(vm);		sqstd_register_bloblib(vm);
+	if( libflags & LIB_MATH		)	{ sq_pushroottable(vm);		sqstd_register_mathlib(vm);		}
+	if( libflags & LIB_STRING	)	{ sq_pushroottable(vm);		sqstd_register_stringlib(vm);	}
+	if( libflags & LIB_BLOB		)	{ sq_pushroottable(vm);		sqstd_register_bloblib(vm);		}
+	if( libflags & LIB_IO		)	{ sq_pushroottable(vm);		sqstd_register_iolib(vm);		}
+	if( libflags & LIB_SYSTEM	)	{ sq_pushroottable(vm);		sqstd_register_systemlib(vm);	}
 
 	for(int i=0;i<(int)__xsq_register::regs().size();i++)
 		__xsq_register::regs()[i](vm);
@@ -296,6 +295,7 @@ void SqVM::DeInit()
 
 	// close VM
 	if(vm) sq_close(vm);
+	vm = 0;
 
 	script_files.clear();
 }
@@ -350,13 +350,17 @@ bool SqVM::AddFile(const char *path)
 			sf.path.clear();
 			break;
 		}
+
+	bool retval = DoFile(path);
+
+	// add file after executing it, so files included will go before it
 	if(sf.path.size()>0)
 		script_files.push_back(sf);
 
-	return DoFile(path);
+	return retval;
 }
 
-int SqVM::CheckFiles()
+int SqVM::CheckFiles(int check_mode)
 {
 	int n = 0;
 	for(int i=0;i<(int)script_files.size();i++)
@@ -365,11 +369,23 @@ int SqVM::CheckFiles()
 		unsigned long long t = xsq_getfiletime(sf.path.c_str());
 		if(t!=sf.timestamp)
 		{
-			DoFile(sf.path.c_str());
+			if( check_mode!=CHECK_RUN_ALL )
+				DoFile(sf.path.c_str());
 			sf.timestamp = t;
 			n++;
 		}
+		else if( n>0 && check_mode==CHECK_RUN_MODIFIED_AND_LATER )
+		{
+			DoFile(sf.path.c_str());	// run because earlier was ran
+		}
 	}
+
+	if( n>0 && check_mode==CHECK_RUN_ALL )
+	{
+		for(int i=0;i<(int)script_files.size();i++)
+			DoFile(script_files[i].path.c_str());
+	}
+
 	return n;
 }
 
