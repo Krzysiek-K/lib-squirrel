@@ -16,6 +16,9 @@
     <Filter Include="SqBind\Autogen">
       <UniqueIdentifier>{972ef0ff-ec41-4d11-a3d5-6ad66f57d905}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SqRat">
+      <UniqueIdentifier>{d0518762-f3b8-44a0-9fe6-c847fbe7236f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api_test.cpp" />
@@ -276,6 +279,51 @@
     <ClInclude Include="src\xtra\xsqbind.h">
       <Filter>Xtra</Filter>
     </ClInclude>
+    <ClInclude Include="src\sqrat\sqrat.h">
+      <Filter>SqRat</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqrat\sqratAllocator.h">
+      <Filter>SqRat</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqrat\sqratArray.h">
+      <Filter>SqRat</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqrat\sqratClass.h">
+      <Filter>SqRat</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqrat\sqratClassType.h">
+      <Filter>SqRat</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqrat\sqratConst.h">
+      <Filter>SqRat</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqrat\sqratFunction.h">
+      <Filter>SqRat</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqrat\sqratGlobalMethods.h">
+      <Filter>SqRat</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqrat\sqratMemberMethods.h">
+      <Filter>SqRat</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqrat\sqratObject.h">
+      <Filter>SqRat</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqrat\sqratOverloadMethods.h">
+      <Filter>SqRat</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqrat\sqratScript.h">
+      <Filter>SqRat</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqrat\sqratTable.h">
+      <Filter>SqRat</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqrat\sqratTypes.h">
+      <Filter>SqRat</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sqrat\sqratUtil.h">
+      <Filter>SqRat</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\sqbind\autogen\sqbCall.inl">
@@ -337,5 +385,6 @@
     </None>
     <None Include="lib_sqbind.pack" />
     <None Include="lib_squirrel.pack" />
+    <None Include="test3.nut" />
   </ItemGroup>
 </Project>

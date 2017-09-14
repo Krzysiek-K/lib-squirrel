@@ -1,0 +1,3 @@
+
+* Squirrel, SqBind and SqRat scripting and binding libraries are licensed under their appropiate licenses.
+* The rest of the code is my own and shared "as-is".

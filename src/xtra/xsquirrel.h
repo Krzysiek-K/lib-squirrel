@@ -119,10 +119,23 @@ class SqRef;
 
 class SqVM {
 public:
+	enum {
+		LIB_BLOB	= (1<<0),
+		LIB_IO		= (1<<1),
+		LIB_MATH	= (1<<2),
+		LIB_STRING	= (1<<3),
+		LIB_SYSTEM	= (1<<4),
+
+		CHECK_RUN_MODIFIED				= 0,
+		CHECK_RUN_ALL					= 1,
+		CHECK_RUN_MODIFIED_AND_LATER	= 2,
+	};
+
+
 	SqVM() : vm(NULL), first_free_handle(NULL), first_busy_handle(NULL), last_stack_size(1024) {}
 	~SqVM() { DeInit(); }
 
-	void Init(int stack_size = 1024);
+	void Init(int stack_size = 1024,int libflags=LIB_BLOB|LIB_MATH|LIB_STRING);
 	void DeInit();
 	void Reset();
 
@@ -130,7 +143,12 @@ public:
 	bool DoString(const char *code);
 
 	bool AddFile(const char *path);
-	int  CheckFiles();
+	int  CheckFiles(int check_mode=CHECK_RUN_MODIFIED);
+
+	void RunGC()	{ sq_collectgarbage(vm); }
+
+	HSQUIRRELVM operator ()() { return vm; }
+
 
 
 	template<class T>
@@ -181,7 +199,7 @@ public:
 	}
 
 	template<class T> SqRef ToObject(const T v);
-	SqRef NewObject();
+	SqRef NewTable();
 
 
 	//template<class A1>
@@ -284,7 +302,7 @@ private:
 	static void print_callback(HSQUIRRELVM vm, const SQChar *format, ...);
 	static void print_error_callback(HSQUIRRELVM vm, const SQChar *format, ...);
 	static void print_stack_trace(HSQUIRRELVM vm);
-	static int	print_runtime_error(HSQUIRRELVM vm);
+	static SQInteger print_runtime_error(HSQUIRRELVM vm);
 	static void print_compile_error(HSQUIRRELVM vm, const SQChar* description, const SQChar* file, SQInteger line, SQInteger column);
 
 	bool getstackobj(SqRef &out,int index);
@@ -478,7 +496,7 @@ SqRef SqVM::ToObject(const T v)
 	return ref;
 }
 
-inline SqRef SqVM::NewObject()
+inline SqRef SqVM::NewTable()
 {
 	SqRef ref;
 	int top = sq_gettop(vm);
@@ -497,7 +515,12 @@ template<>	inline		int SqVM::_sq_push(const std::string a)	{ sq_pushstring(vm,a.
 template<>	inline		int SqVM::_sq_push(std::string *a)		{ sq_pushstring(vm,a->c_str(),-1);	return 1; }
 template<>	inline		int SqVM::_sq_push(SqRef a)				{ if(a.handle) sq_pushobject(vm,a.handle->hobj); else sq_pushnull(vm);	return 1; }
 
-template<>	inline		bool SqVM::_sq_get(int &out,int depth)			{ if(SQ_FAILED(sq_getinteger(vm,depth,&out)))	{ out=0; return false; } return true; }
+template<>	inline		bool SqVM::_sq_get(int &out,int depth) {
+							SQInteger i;
+							if(SQ_FAILED(sq_getinteger(vm,depth,&i)))	{ out=0; return false; }
+							out = i;
+							return true;
+						}
 template<>	inline		bool SqVM::_sq_get(float &out,int depth)		{ if(SQ_FAILED(sq_getfloat(vm,depth,&out)))	{ out=0; return false; } return true; }
 template<>				bool SqVM::_sq_get(std::string &out,int depth);
 template<>	inline		bool SqVM::_sq_get(SqRef &out,int depth)		{ return getstackobj(out,depth); }
@@ -588,6 +611,7 @@ template<> inline bool SqVM::_sq_get(XSQ_VEC2 &out,int depth)
 template<> inline bool SqVM::_sq_get(XSQ_VEC3 &out,int depth)
 {
 	int top = sq_gettop(vm);
+	int d0 = depth;
 	if(depth<0) depth = top + depth + 1;
 
 	do {

@@ -1,4 +1,4 @@
-// ---------------- Library -- generated on 18.4.2015  11:46 ----------------
+// ---------------- Library -- generated on 14.9.2017  22:24 ----------------
 
 
 
@@ -7,6 +7,7 @@
 // ******************************** xsqbind.h ********************************
 
 // ---- #pragma once
+
 
 
 // ---- #include "xsquirrel.h"
@@ -641,10 +642,23 @@ class SqRef;
 
 class SqVM {
 public:
+	enum {
+		LIB_BLOB	= (1<<0),
+		LIB_IO		= (1<<1),
+		LIB_MATH	= (1<<2),
+		LIB_STRING	= (1<<3),
+		LIB_SYSTEM	= (1<<4),
+
+		CHECK_RUN_MODIFIED				= 0,
+		CHECK_RUN_ALL					= 1,
+		CHECK_RUN_MODIFIED_AND_LATER	= 2,
+	};
+
+
 	SqVM() : vm(NULL), first_free_handle(NULL), first_busy_handle(NULL), last_stack_size(1024) {}
 	~SqVM() { DeInit(); }
 
-	void Init(int stack_size = 1024);
+	void Init(int stack_size = 1024,int libflags=LIB_BLOB|LIB_MATH|LIB_STRING);
 	void DeInit();
 	void Reset();
 
@@ -652,7 +666,12 @@ public:
 	bool DoString(const char *code);
 
 	bool AddFile(const char *path);
-	int  CheckFiles();
+	int  CheckFiles(int check_mode=CHECK_RUN_MODIFIED);
+
+	void RunGC()	{ sq_collectgarbage(vm); }
+
+	HSQUIRRELVM operator ()() { return vm; }
+
 
 
 	template<class T>
@@ -703,7 +722,7 @@ public:
 	}
 
 	template<class T> SqRef ToObject(const T v);
-	SqRef NewObject();
+	SqRef NewTable();
 
 
 	//template<class A1>
@@ -806,7 +825,7 @@ private:
 	static void print_callback(HSQUIRRELVM vm, const SQChar *format, ...);
 	static void print_error_callback(HSQUIRRELVM vm, const SQChar *format, ...);
 	static void print_stack_trace(HSQUIRRELVM vm);
-	static int	print_runtime_error(HSQUIRRELVM vm);
+	static SQInteger print_runtime_error(HSQUIRRELVM vm);
 	static void print_compile_error(HSQUIRRELVM vm, const SQChar* description, const SQChar* file, SQInteger line, SQInteger column);
 
 	bool getstackobj(SqRef &out,int index);
@@ -1000,7 +1019,7 @@ SqRef SqVM::ToObject(const T v)
 	return ref;
 }
 
-inline SqRef SqVM::NewObject()
+inline SqRef SqVM::NewTable()
 {
 	SqRef ref;
 	int top = sq_gettop(vm);
@@ -1019,7 +1038,12 @@ template<>	inline		int SqVM::_sq_push(const std::string a)	{ sq_pushstring(vm,a.
 template<>	inline		int SqVM::_sq_push(std::string *a)		{ sq_pushstring(vm,a->c_str(),-1);	return 1; }
 template<>	inline		int SqVM::_sq_push(SqRef a)				{ if(a.handle) sq_pushobject(vm,a.handle->hobj); else sq_pushnull(vm);	return 1; }
 
-template<>	inline		bool SqVM::_sq_get(int &out,int depth)			{ if(SQ_FAILED(sq_getinteger(vm,depth,&out)))	{ out=0; return false; } return true; }
+template<>	inline		bool SqVM::_sq_get(int &out,int depth) {
+							SQInteger i;
+							if(SQ_FAILED(sq_getinteger(vm,depth,&i)))	{ out=0; return false; }
+							out = i;
+							return true;
+						}
 template<>	inline		bool SqVM::_sq_get(float &out,int depth)		{ if(SQ_FAILED(sq_getfloat(vm,depth,&out)))	{ out=0; return false; } return true; }
 template<>				bool SqVM::_sq_get(std::string &out,int depth);
 template<>	inline		bool SqVM::_sq_get(SqRef &out,int depth)		{ return getstackobj(out,depth); }
@@ -1110,6 +1134,7 @@ template<> inline bool SqVM::_sq_get(XSQ_VEC2 &out,int depth)
 template<> inline bool SqVM::_sq_get(XSQ_VEC3 &out,int depth)
 {
 	int top = sq_gettop(vm);
+	int d0 = depth;
 	if(depth<0) depth = top + depth + 1;
 
 	do {
@@ -1143,14 +1168,15 @@ template<> inline bool SqVM::_sq_get(XSQ_VEC3 &out,int depth)
 #endif
 
 // <--- back to xsqbind.h
-// ---- #include "sqbind/SquirrelBind.h"
-// ---> including SquirrelBind.h
+
+// ---- #include "sqbind/sqbStackUtils.h"
+// ---> including sqbStackUtils.h
 // ---- #pragma once
 //----------------------------------------------------------------------------------------------------------------------
 // Copyright (c) 2012 James Whitworth
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the 'Software'), to deal
+// of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
@@ -1159,7 +1185,7 @@ template<> inline bool SqVM::_sq_get(XSQ_VEC3 &out,int depth)
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
 //
-// THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -1734,1323 +1760,6 @@ SQBIND_API AssertFailOp AssertionFailureFunctionContinue(const char *file, size_
 
 } // namespace sqb
 
-// <--- back to SquirrelBind.h
-// ---- #include <sqbind/sqbBind.h>
-// ---> including sqbBind.h
-// ---- #pragma once
-//----------------------------------------------------------------------------------------------------------------------
-// Copyright (c) 2012 James Whitworth
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//----------------------------------------------------------------------------------------------------------------------
-#include <cstring>
-//----------------------------------------------------------------------------------------------------------------------
-// ---- #include <sqbind/autogen/sqbCall.h>
-// ---> including sqbCall.h
-// ---- #pragma once
-//----------------------------------------------------------------------------------------------------------------------
-// Copyright (c) 2012 James Whitworth
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the 'Software'), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//----------------------------------------------------------------------------------------------------------------------
-// ---- #include "sqbind/autogen/sqbReturnSpecialisation.h"
-// ---> including sqbReturnSpecialisation.h
-// ---- #pragma once
-//----------------------------------------------------------------------------------------------------------------------
-// Copyright (c) 2012 James Whitworth
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the 'Software'), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//----------------------------------------------------------------------------------------------------------------------
-// ---- #include "sqbind/sqbStackHandler.h"
-// ---> including sqbStackHandler.h
-// ---- #pragma once
-//----------------------------------------------------------------------------------------------------------------------
-// Copyright (c) 2012 James Whitworth
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//----------------------------------------------------------------------------------------------------------------------
-// ---- #include <sqbind/sqbAssert.h>
-// ---> including sqbAssert.h
-// <--- back to sqbStackHandler.h
-// ---- #include <sqbind/sqbClassHelpers.h>
-// ---> including sqbClassHelpers.h
-// ---- #pragma once
-//----------------------------------------------------------------------------------------------------------------------
-// Copyright (c) 2012 James Whitworth
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//----------------------------------------------------------------------------------------------------------------------
-// ---- #include <sqbind/sqbTypeInfo.h>
-// ---> including sqbTypeInfo.h
-// ---- #pragma once
-//----------------------------------------------------------------------------------------------------------------------
-// Copyright (c) 2012 James Whitworth
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//----------------------------------------------------------------------------------------------------------------------
-// ---- #include <sqbind/sqbBaseHeader.h>
-// ---> including sqbBaseHeader.h
-// <--- back to sqbTypeInfo.h
-//----------------------------------------------------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \def SQBIND_DECLARE_TYPEINFO(TYPE, NAME)
-/// \brief Declares the sqb::TypeInfo struct for a type. This is required for binding a type as a variable.
-//----------------------------------------------------------------------------------------------------------------------
-#define SQBIND_DECLARE_TYPEINFO(TYPE, NAME) \
-  namespace sqb \
-  { \
-  template<> \
-  struct TypeInfo<TYPE> \
-  { \
-    enum \
-    { \
-      kTypeID = kScriptVarTypeInstance, \
-      kTypeSize = sizeof(TYPE), \
-      kTypeMask = 'x', \
-      kTypeIsInstance = SQTrue, \
-    }; \
-    const SQChar *m_typeName; \
-    inline TypeInfo() \
-    : m_typeName(_SC(#NAME)) \
-    { \
-    } \
-    inline operator ScriptVarType() const \
-    { \
-      return static_cast<ScriptVarType>(kTypeID); \
-    } \
-  }; \
-  }
-
-namespace sqb
-{
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief Converts from a SQObjectType to a string.
-/// \code
-/// // prints out "string"
-/// scprintf(RawTypeToTypeName(OT_STRING));
-/// \endcode
-//----------------------------------------------------------------------------------------------------------------------
-inline const SQChar *RawTypeToTypeName(SQObjectType type);
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief List of basic types that are supported.
-//----------------------------------------------------------------------------------------------------------------------
-enum ScriptVarType
-{
-  kScriptVarTypeNone = -1,
-  kScriptVarTypeBool = 0,
-  kScriptVarTypeChar,
-  kScriptVarTypeInt8,
-  kScriptVarTypeUInt8,
-  kScriptVarTypeInt16,
-  kScriptVarTypeUInt16,
-  kScriptVarTypeInt32,
-  kScriptVarTypeUInt32,
-  kScriptVarTypeFloat,
-  kScriptVarTypeString,
-  kScriptVarTypeUserPointer,
-  kScriptVarTypeInstance,
-  kScriptVarTypeObject,
-#if defined(_SQ64)
-  kScriptVarTypeInt64,
-  kScriptVarTypeUInt64,
-#endif // defined(_SQ64)
-#if defined(SQUSEDOUBLE)
-  kScriptVarTypeDouble,
-#endif // defined(SQUSEDOUBLE)
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief Template class for gaining info about a bound script type. Specialisation of TypeInfo
-/// is done automatically when a type is declared using #SQBIND_DECLARE_TYPEINFO or any of the other
-/// macros that call it.
-//----------------------------------------------------------------------------------------------------------------------
-template<typename T>
-struct TypeInfo
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeNone,
-    kTypeSize = sizeof(T),
-    kTypeMask = '?',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \cond NO_DOXYGEN
-template<>
-struct TypeInfo<bool>
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeBool,
-    kTypeSize = sizeof(bool),
-    kTypeMask = 'b',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-template<>
-struct TypeInfo<char>
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeChar,
-    kTypeSize = sizeof(char),
-    kTypeMask = 'i',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-template<>
-struct TypeInfo<int8_t>
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeInt8,
-    kTypeSize = sizeof(int8_t),
-    kTypeMask = 'i',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-template<>
-struct TypeInfo<uint8_t>
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeUInt8,
-    kTypeSize = sizeof(uint8_t),
-    kTypeMask = 'i',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-template<>
-struct TypeInfo<int16_t>
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeInt16,
-    kTypeSize = sizeof(int16_t),
-    kTypeMask = 'i',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-template<>
-struct TypeInfo<uint16_t>
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeUInt16,
-    kTypeSize = sizeof(uint16_t),
-    kTypeMask = 'i',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-template<>
-struct TypeInfo<int32_t>
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeInt32,
-    kTypeSize = sizeof(int32_t),
-    kTypeMask = 'n',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-template<>
-struct TypeInfo<uint32_t>
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeUInt32,
-    kTypeSize = sizeof(uint32_t),
-    kTypeMask = 'n',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-template<>
-struct TypeInfo<float>
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeFloat,
-    kTypeSize = sizeof(float),
-    kTypeMask = 'n',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-template<>
-struct TypeInfo<const SQChar*>
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeString,
-    kTypeSize = sizeof(const SQChar*),
-    kTypeMask = 's',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-template<>
-struct TypeInfo<SQUserPointer>
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeUserPointer,
-    kTypeSize = sizeof(SQUserPointer),
-    kTypeMask = 'p',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-template<>
-struct TypeInfo<HSQOBJECT>
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeObject,
-    kTypeSize = sizeof(HSQOBJECT),
-    kTypeMask = '.',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-#if defined(_SQ64)
-
-//----------------------------------------------------------------------------------------------------------------------
-template<>
-struct TypeInfo<int64_t>
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeInt64,
-    kTypeSize = sizeof(int64_t),
-    kTypeMask = 'n',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-template<>
-struct TypeInfo<uint64_t>
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeUInt64,
-    kTypeSize = sizeof(uint64_t),
-    kTypeMask = 'n',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-#endif // defined(_SQ64)
-
-#if defined(SQUSEDOUBLE)
-
-//----------------------------------------------------------------------------------------------------------------------
-template<>
-struct TypeInfo<double>
-{
-  enum
-  {
-    kTypeID = kScriptVarTypeDouble,
-    kTypeSize = sizeof(double),
-    kTypeMask = 'n',
-    kTypeIsInstance = SQFalse,
-  };
-
-  const SQChar *m_typeName;
-
-  TypeInfo();
-};
-
-#endif // defined(SQUSEDOUBLE)
-/// \endcond
-
-} // namespace sqb
-
-// ---- #include <sqbind/sqbTypeInfo.inl>
-// ---> including sqbTypeInfo.inl
-// ---- #pragma once
-//----------------------------------------------------------------------------------------------------------------------
-// Copyright (c) 2012 James Whitworth
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//----------------------------------------------------------------------------------------------------------------------
-
-namespace sqb
-{
-//----------------------------------------------------------------------------------------------------------------------
-inline const SQChar *RawTypeToTypeName(SQObjectType type)
-{
-  switch(_RAW_TYPE(type))
-  {
-  case _RT_NULL:
-    return _SC("null");
-  case _RT_INTEGER:
-    return _SC("integer");
-  case _RT_FLOAT:
-    return _SC("float");
-  case _RT_BOOL:
-    return _SC("bool");
-  case _RT_STRING:
-    return _SC("string");
-  case _RT_TABLE:
-    return _SC("table");
-  case _RT_ARRAY:
-    return _SC("array");
-  case _RT_GENERATOR:
-    return _SC("generator");
-  case _RT_CLOSURE:
-  case _RT_NATIVECLOSURE:
-    return _SC("function");
-  case _RT_USERDATA:
-  case _RT_USERPOINTER:
-    return _SC("userdata");
-  case _RT_THREAD:
-    return _SC("thread");
-  case _RT_CLASS:
-    return _SC("class");
-  case _RT_INSTANCE:
-    return _SC("instance");
-  case _RT_WEAKREF:
-    return _SC("weakref");
-  default:
-    break;
-  }
-  return _SC("");
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<bool>
-//----------------------------------------------------------------------------------------------------------------------
-template<typename T>
-inline TypeInfo<T>::TypeInfo()
-: m_typeName(_SC(""))
-{
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<bool>
-//----------------------------------------------------------------------------------------------------------------------
-inline TypeInfo<bool>::TypeInfo()
-: m_typeName(RawTypeToTypeName(OT_BOOL))
-{
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<char>
-//----------------------------------------------------------------------------------------------------------------------
-inline TypeInfo<char>::TypeInfo()
-: m_typeName(RawTypeToTypeName(OT_INTEGER))
-{
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<int8_t>
-//----------------------------------------------------------------------------------------------------------------------
-inline TypeInfo<int8_t>::TypeInfo()
-: m_typeName(RawTypeToTypeName(OT_INTEGER))
-{
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<uint8_t>
-//----------------------------------------------------------------------------------------------------------------------
-inline TypeInfo<uint8_t>::TypeInfo()
-: m_typeName(RawTypeToTypeName(OT_INTEGER))
-{
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<int16_t>
-//----------------------------------------------------------------------------------------------------------------------
-inline TypeInfo<int16_t>::TypeInfo()
-: m_typeName(RawTypeToTypeName(OT_INTEGER))
-{
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<uint16_t>
-//----------------------------------------------------------------------------------------------------------------------
-inline TypeInfo<uint16_t>::TypeInfo()
-: m_typeName(RawTypeToTypeName(OT_INTEGER))
-{
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<int32_t>
-//----------------------------------------------------------------------------------------------------------------------
-inline TypeInfo<int32_t>::TypeInfo()
-: m_typeName(RawTypeToTypeName(OT_INTEGER))
-{
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<uint32_t>
-//----------------------------------------------------------------------------------------------------------------------
-inline TypeInfo<uint32_t>::TypeInfo()
-: m_typeName(RawTypeToTypeName(OT_INTEGER))
-{
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<float>
-//----------------------------------------------------------------------------------------------------------------------
-inline TypeInfo<float>::TypeInfo()
-: m_typeName(RawTypeToTypeName(OT_FLOAT))
-{
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<const SQChar*>
-//----------------------------------------------------------------------------------------------------------------------
-inline TypeInfo<const SQChar*>::TypeInfo()
-: m_typeName(RawTypeToTypeName(OT_STRING))
-{
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<SQUserPointer>
-//----------------------------------------------------------------------------------------------------------------------
-inline TypeInfo<SQUserPointer>::TypeInfo()
-: m_typeName(RawTypeToTypeName(OT_USERPOINTER))
-{
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<HSQOBJECT>
-//----------------------------------------------------------------------------------------------------------------------
-inline TypeInfo<HSQOBJECT>::TypeInfo()
-: m_typeName(_SC("object"))
-{
-}
-
-#if defined(_SQ64)
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<int64_t>
-//----------------------------------------------------------------------------------------------------------------------
-inline TypeInfo<int64_t>::TypeInfo()
-: m_typeName(RawTypeToTypeName(OT_INTEGER))
-{
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<uint64_t>
-//----------------------------------------------------------------------------------------------------------------------
-inline TypeInfo<uint64_t>::TypeInfo()
-: m_typeName(RawTypeToTypeName(OT_INTEGER))
-{
-}
-
-#endif
-
-#if defined(SQUSEDOUBLE)
-
-//----------------------------------------------------------------------------------------------------------------------
-// TypeInfo<double>
-//----------------------------------------------------------------------------------------------------------------------
-inline TypeInfo<double>::TypeInfo()
-: m_typeName(RawTypeToTypeName(OT_FLOAT))
-{
-}
-
-#endif
-
-} // namespace sqb
-
-// <--- back to sqbTypeInfo.h
-
-// <--- back to sqbClassHelpers.h
-//----------------------------------------------------------------------------------------------------------------------
-
-namespace sqb
-{
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief Default function used as _typeof metamethod func of classes bound with #RegisterClassType.
-//----------------------------------------------------------------------------------------------------------------------
-template<typename ClassType>
-SQInteger TypeOf(HSQUIRRELVM vm);
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief Creates an instance of classObject and set its release hook without invoking the constructor.
-/// Resulting instance is left on the top of the stack. The function will fail if classObject is not of
-/// type OT_CLASS or the call to sq_createinstance fails. If the call to sq_createinstance fails then
-/// the error can be retrieved by getting the last error for the vm.
-//----------------------------------------------------------------------------------------------------------------------
-SQBIND_API bool CreateNativeClassInstance(HSQUIRRELVM vm, HSQOBJECT classObject, SQRELEASEHOOK hook);
-
-}
-
-// ---- #include <sqbind/sqbClassHelpers.inl>
-// ---> including sqbClassHelpers.inl
-// ---- #pragma once
-//----------------------------------------------------------------------------------------------------------------------
-// Copyright (c) 2012 James Whitworth
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//----------------------------------------------------------------------------------------------------------------------
-
-namespace sqb
-{
-//----------------------------------------------------------------------------------------------------------------------
-template<typename ClassType>
-SQInteger TypeOf(HSQUIRRELVM v)
-{
-  sq_pushstring(v, TypeInfo<ClassType>().m_typeName, -1);
-  return 1;
-}
-
-} // namespace sqb
-
-// <--- back to sqbClassHelpers.h
-
-// <--- back to sqbStackHandler.h
-// ---- #include <sqbind/sqbClassTypeTag.h>
-// ---> including sqbClassTypeTag.h
-// ---- #pragma once
-//----------------------------------------------------------------------------------------------------------------------
-// Copyright (c) 2012 James Whitworth
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//----------------------------------------------------------------------------------------------------------------------
-#include <cstdio>
-//----------------------------------------------------------------------------------------------------------------------
-// ---- #include <sqbind/sqbAssert.h>
-// ---> including sqbAssert.h
-// <--- back to sqbClassTypeTag.h
-// ---- #include <sqbind/sqbTypeInfo.h>
-// ---> including sqbTypeInfo.h
-// <--- back to sqbClassTypeTag.h
-// ---- #include <sqbind/sqbTypeTraits.h>
-// ---> including sqbTypeTraits.h
-// ---- #pragma once
-//----------------------------------------------------------------------------------------------------------------------
-// Copyright (c) 2012 James Whitworth
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//----------------------------------------------------------------------------------------------------------------------
-// ---- #include <squirrel.h>
-// ---> including squirrel.h
-// <--- back to sqbTypeTraits.h
-//----------------------------------------------------------------------------------------------------------------------
-
-/// \defgroup typetraits Class type traits
-//@{
-
-namespace sqb
-{
-namespace traits
-{
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief This helper struct defines whether a class is a pod type. When an instance of a bound pod class is
-/// released there is no need to call its destructor. For classes bound using ClassUserDataClassDef this means
-/// there is no need for a release hook at all. For classes bound using SqMallocClassDef there is only a need
-/// to call sq_free. There is no way to automatically check if a class is a pod type so classes must be declared
-/// as such using DECLARE_TYPE_POD.
-//----------------------------------------------------------------------------------------------------------------------
-template<typename T>
-struct IsPod { enum { kValue = false }; };
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief Used to query whether a type is copyable. To make a type non-copyable specialise this class
-/// or use the macros #SQBIND_DECLARE_NON_COPYABLE_CLASS_NAME or #SQBIND_DECLARE_NON_COPYABLE_CLASS.
-/// Copyable types will use the assignment operator to copy them, non-copyable types by default will use
-/// memcpy and sizeof(T). To change the copy operation of a type specialise ClassTypeCopyImpl before
-/// declaring the type.
-//----------------------------------------------------------------------------------------------------------------------
-template<typename T>
-struct IsCopyable { enum { kValue = true }; };
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief This helper struct defines whether a class is aligned or not.
-//----------------------------------------------------------------------------------------------------------------------
-template<typename T>
-struct IsAligned { enum { kIsAligned = false, kAlignment = 4, }; };
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief Used to remove const, pointer and reference qualifiers from a given type. Used when querying
-/// information about a type with TypeInfo and other traits classes.
-//----------------------------------------------------------------------------------------------------------------------
-template<typename Type>
-struct RemoveQualifiers { typedef Type kType; };
-
-} // namespace traits
-
-} // namespace sqb
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \def SQBIND_TYPE_POD(TYPE)
-/// \brief Informs sqbind a class is a pod type, this means the binding code can optimise the class by simplifying
-/// or in some cases removing each instances release hook. This does not affect the behaviour of Push so if the release
-/// hook is set manually using ClassType::SetReleaseHook it will still be set for each instance of classes created with
-/// Push(const MyClass&).
-//----------------------------------------------------------------------------------------------------------------------
-#define SQBIND_TYPE_POD(TYPE) \
-  namespace sqb \
-  { \
-  namespace traits \
-  { \
-  template<> \
-  struct IsPod<TYPE> { enum { kValue = true }; }; \
-  } \
-  }
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \def SQBIND_TYPE_NON_COPYABLE(TYPE)
-/// \brief 
-//----------------------------------------------------------------------------------------------------------------------
-#define SQBIND_TYPE_NON_COPYABLE(TYPE) \
-  namespace sqb \
-  { \
-  namespace traits \
-  { \
-  template<> \
-  struct IsCopyable<TYPE> { enum { kValue = false }; }; \
-  } \
-  }
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \def SQBIND_TYPE_ALIGNED(TYPE, ALIGNMENT)
-/// \brief Declares a class type to be aligned.
-/// \note Alignment currently only works with classes declared with SQBIND_DECLARE_CLASS and ClassDefinition or
-///   SQBIND_DECLARE_CLASSUD_CLASS and ClassUserDataClassDefinition. Instances bound with the other macros/class
-///   definitions will not be aligned.
-//----------------------------------------------------------------------------------------------------------------------
-#define SQBIND_TYPE_ALIGNED(TYPE, ALIGNMENT) \
-  namespace sqb \
-  { \
-  namespace traits \
-  { \
-  template<> \
-  struct IsAligned<TYPE> { enum { kIsAligned = true, kAlignment = ALIGNMENT, }; }; \
-  } \
-  }
-
-//@}
-
-// ---- #include <sqbind/sqbTypeTraits.inl>
-// ---> including sqbTypeTraits.inl
-// ---- #pragma once
-//----------------------------------------------------------------------------------------------------------------------
-// Copyright (c) 2012 James Whitworth
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//----------------------------------------------------------------------------------------------------------------------
-
-namespace sqb
-{
-namespace traits
-{
-//----------------------------------------------------------------------------------------------------------------------
-// RemoveQualifiers specialisations.
-//----------------------------------------------------------------------------------------------------------------------
-template<typename Type>
-struct RemoveQualifiers<const Type> { typedef Type kType; };
-
-//----------------------------------------------------------------------------------------------------------------------
-template<typename Type>
-struct RemoveQualifiers<Type &> { typedef Type kType; };
-
-//----------------------------------------------------------------------------------------------------------------------
-template<typename Type>
-struct RemoveQualifiers<Type *> { typedef Type kType; };
-
-//----------------------------------------------------------------------------------------------------------------------
-template<typename Type>
-struct RemoveQualifiers<const Type &> { typedef Type kType; };
-
-//----------------------------------------------------------------------------------------------------------------------
-template<typename Type>
-struct RemoveQualifiers<const Type *> { typedef Type kType; };
-
-//----------------------------------------------------------------------------------------------------------------------
-template<typename Type>
-struct RemoveQualifiers<Type *&> { typedef Type kType; };
-
-//----------------------------------------------------------------------------------------------------------------------
-template<typename Type>
-struct RemoveQualifiers<const Type *&> { typedef Type kType; };
-
-//----------------------------------------------------------------------------------------------------------------------
-// specialisation for strings so they are correctly identified when using
-// RemoveQualifiers combined with TypeInfo.
-template<>
-struct RemoveQualifiers<const SQChar *> { typedef const SQChar *kType; };
-
-} // namespace traits
-
-} // namespace sqb
-
-// <--- back to sqbTypeTraits.h
-
-// <--- back to sqbClassTypeTag.h
-//----------------------------------------------------------------------------------------------------------------------
-
-namespace sqb
-{
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief For binding classes that have no base class.
-//----------------------------------------------------------------------------------------------------------------------
-class NoBaseClass { };
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief
-//----------------------------------------------------------------------------------------------------------------------
-typedef void (*CopyInstanceFunction)(void *dst, void *src);
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief
-//----------------------------------------------------------------------------------------------------------------------
-class SQBIND_API ClassTypeTagBase
-{
-public:
-  ClassTypeTagBase();
-  virtual ~ClassTypeTagBase();
-
-  /// \brief As this class is used as a type tag it will be cast to void pointers and back again, this check
-  /// should ensure that other typetags cast from void pointers are not incorrectly used as this.
-  bool IsValid() const;
-
-  /// \brief Many types cannot have offset, since "this" is the same for all base classes of
-  /// an instance. Detect this, to avoid sum up base offsets all the time.
-  bool MayHaveOffset() const;
-  /// \brief Gets the offset to this class from the base class pointer.
-  ptrdiff_t GetOffsetTo(const ClassTypeTagBase *pbase) const;
-
-  /// \brief Get the script name of the type
-  const SQChar *GetTypeName() const;
-
-  /// \brief Sets the release hook for the class.
-  /// \note Always use the instance returned by the static Get function to call this func.
-  void SetReleaseHook(SQRELEASEHOOK releaseHook);
-  /// \brief Get the release hook for this class.
-  /// \note Always use the instance returned by the static Get function to call this func.
-  SQRELEASEHOOK GetReleaseHook() const;
-
-  /// \brief Stores the class in the vm's registry table.
-  void SetClassObject(HSQUIRRELVM vm, HSQOBJECT classObject);
-  /// \brief Retrieves the class from the vm's registry table. The returned object handle is not a strong
-  /// reference to the class object, make sure to call sq_addref if a strong reference is needed.
-  HSQOBJECT GetClassObject(HSQUIRRELVM vm) const;
-
-  /// \brief Checks that a class userdata is exactly equal to a specific size.
-  /// \note Class user data is set using sq_setclassudsize or ClassDefBase::SetUserDataSize.
-  bool CheckClassUserDataSize(HSQUIRRELVM vm, SQInteger expectedSize) const;
-
-  virtual CopyInstanceFunction GetCopyFunction() const = 0;
-
-protected:
-  /// \brief Name of type.
-  const SQChar *m_name;
-  /// \brief Sets the release hook for the class.
-  SQRELEASEHOOK m_releaseHook;
-  /// \brief pointer to base class type.
-  ClassTypeTagBase *m_baseType;
-  /// \brief Adjustment of this pointer between this type and its base class.
-  ptrdiff_t m_offset;
-  /// \brief Set to 0 for types that cannot possibly have offset.
-  mutable int8_t m_mayHaveOffset;
-
-private:
-  static const int32_t m_expectedValidityCheck;
-  const int32_t m_validityCheck;
-
-  // disable copy construction
-  //
-  ClassTypeTagBase(const ClassTypeTagBase&);
-  const ClassTypeTagBase& operator = (const ClassTypeTagBase&);
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief This level handles instance copying in different ways
-//----------------------------------------------------------------------------------------------------------------------
-template<typename T, bool copyable>
-class ClassTypeTagCopyImpl;
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief Base class to do copying using the assignment operator.
-//----------------------------------------------------------------------------------------------------------------------
-template<typename ClassType>
-class ClassTypeTagCopyImpl<ClassType, true> : public ClassTypeTagBase
-{
-protected:
-  /// \brief this works for types with assignment operator
-  static void CopyInstance(ClassType *dst, ClassType *src);
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief Base class to do copying with memcpy
-//----------------------------------------------------------------------------------------------------------------------
-template<typename ClassType>
-class ClassTypeTagCopyImpl<ClassType, false> : public ClassTypeTagBase
-{
-protected:
-  /// \brief This will assert if possible or do nothing.
-  static void CopyInstance(ClassType *dst, ClassType *src);
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-/// \brief Used to get info about types.
-//----------------------------------------------------------------------------------------------------------------------
-template<typename ClassType>
-class ClassTypeTag : public ClassTypeTagCopyImpl<ClassType, traits::IsCopyable<ClassType>::kValue>
-{
-public:
-  typedef ClassTypeTagCopyImpl<ClassType, traits::IsCopyable<ClassType>::kValue> ThisBaseType;
-
-  // helps resolve unqualified names to members of the dependent base class.
-  using ThisBaseType::m_baseType;
-  using ThisBaseType::m_name;
-  using ThisBaseType::m_offset;
-
-#if defined(SQBIND_COMPILER_MSVC)
-#pragma warning(push)
-// nonstandard extension used: override specifier 'override'
-#pragma warning(disable: 4481)
-#endif
-
-  /// \brief Override from ClassTypeTagBase
-  CopyInstanceFunction GetCopyFunction() const SQBIND_OVERRIDE;
-
-#if defined(SQBIND_COMPILER_MSVC)
-#pragma warning(pop)
-#endif
-
-  /// \brief Sets the base class type for this type.
-  /// \note Always use the instance returned by the static Get function to call this func.
-  ///   Have to pass a dummy pointer to the class type to help gcc out.
-  template<typename BaseClassType>
-  void SetBaseClass(BaseClassType *);
-
-  /// \brief Gets an instance of ClassType<T> to save many being created.
-  static ClassTypeTag<ClassType> *Get();
-
-protected:
-  ClassTypeTag();
-
-private:
-  static ClassTypeTag m_instance;
-
-  // copy construction and assignment are disabled
-  ClassTypeTag(const ClassTypeTag &rhs);
-  const ClassTypeTag &operator = (const ClassTypeTag &rhs);
-};
-
-}
-
-// ---- #include <sqbind/sqbClassTypeTag.inl>
-// ---> including sqbClassTypeTag.inl
-// ---- #pragma once
-//----------------------------------------------------------------------------------------------------------------------
-// Copyright (c) 2012 James Whitworth
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//----------------------------------------------------------------------------------------------------------------------
-
-namespace sqb
-{
-//----------------------------------------------------------------------------------------------------------------------
-// ClassTypeTagBase functions.
-//----------------------------------------------------------------------------------------------------------------------
-inline bool ClassTypeTagBase::IsValid() const
-{
-  return m_validityCheck == m_expectedValidityCheck;
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-inline const SQChar *ClassTypeTagBase::GetTypeName() const
-{
-  return m_name;
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-inline void ClassTypeTagBase::SetReleaseHook(SQRELEASEHOOK releaseHook)
-{
-  m_releaseHook = releaseHook;
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-inline SQRELEASEHOOK ClassTypeTagBase::GetReleaseHook() const
-{
-  return m_releaseHook;
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-template<typename ClassType>
-inline void ClassTypeTagCopyImpl<ClassType, true>::CopyInstance(ClassType *dst, ClassType *src)
-{
-  *dst = *src;
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-template<typename ClassType>
-inline void ClassTypeTagCopyImpl<ClassType, false>::CopyInstance(
-  ClassType *SQBIND_UNUSED(dst),
-  ClassType *SQBIND_UNUSED(src))
-{
-  SQBIND_ASSERT_FAIL();
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-/// ClassTypeTag<ClassType>
-//----------------------------------------------------------------------------------------------------------------------
-template<typename ClassType>
-ClassTypeTag<ClassType> ClassTypeTag<ClassType>::m_instance;
-
-//----------------------------------------------------------------------------------------------------------------------
-template<typename ClassType>
-inline CopyInstanceFunction ClassTypeTag<ClassType>::GetCopyFunction() const
-{
-  return reinterpret_cast<CopyInstanceFunction>(&ThisBaseType::CopyInstance);
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-template<typename ClassType>
-template<typename BaseClassType>
-void ClassTypeTag<ClassType>::SetBaseClass(BaseClassType *)
-{
-  m_baseType = ClassTypeTag<BaseClassType>::Get();
-
-  // get the this pointer as the type ClassType (could be anything instead of this other than nullptr)
-  //
-  const ClassType *pt = reinterpret_cast<ClassType *>(this);
-  // subtract the type pointer from the same pointer cast to the base type
-  // the cast to base type offsets the pointer if there is any offset between types BC and T
-  // subtracting T* from BC* for the same instance will result in the offset.
-  //
-  m_offset = reinterpret_cast<const char *>(pt) - reinterpret_cast<const char *>(static_cast<const BaseClassType *>(pt));
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-template<typename ClassType>
-inline ClassTypeTag<ClassType> *ClassTypeTag<ClassType>::Get()
-{
-  return &m_instance;
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-template<>
-inline ClassTypeTag<NoBaseClass> *ClassTypeTag<NoBaseClass>::Get()
-{
-  return nullptr;
-}
-
-// as all ClassTypeTagBase are static instances this destructor is hit after the test coverage scanning has finished
-//
-SQBIND_TEST_COVERAGE_OFF()
-//----------------------------------------------------------------------------------------------------------------------
-template<typename ClassType>
-inline ClassTypeTag<ClassType>::ClassTypeTag()
-{
-  m_name = TypeInfo<ClassType>().m_typeName;
-}
-SQBIND_TEST_COVERAGE_ON()
-
-} // namespace sqb
-
-// <--- back to sqbClassTypeTag.h
-
-// <--- back to sqbStackHandler.h
-// ---- #include <sqbind/sqbStackUtils.h>
-// ---> including sqbStackUtils.h
-// ---- #pragma once
-//----------------------------------------------------------------------------------------------------------------------
-// Copyright (c) 2012 James Whitworth
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//----------------------------------------------------------------------------------------------------------------------
-// ---- #include <sqbind/sqbAssert.h>
-// ---> including sqbAssert.h
 // <--- back to sqbStackUtils.h
 //----------------------------------------------------------------------------------------------------------------------
 #include <new>
@@ -3656,6 +2365,1494 @@ inline double Get(TypeWrapper<double> SQBIND_UNUSED(wrapper), HSQUIRRELVM vm, SQ
 
 // <--- back to sqbStackUtils.h
 
+// <--- back to xsqbind.h
+// ---- #include "sqbind/sqbTypeInfo.h"
+// ---> including sqbTypeInfo.h
+// ---- #pragma once
+//----------------------------------------------------------------------------------------------------------------------
+// Copyright (c) 2012 James Whitworth
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//----------------------------------------------------------------------------------------------------------------------
+// ---- #include <sqbind/sqbBaseHeader.h>
+// ---> including sqbBaseHeader.h
+// <--- back to sqbTypeInfo.h
+//----------------------------------------------------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \def SQBIND_DECLARE_TYPEINFO(TYPE, NAME)
+/// \brief Declares the sqb::TypeInfo struct for a type. This is required for binding a type as a variable.
+//----------------------------------------------------------------------------------------------------------------------
+#define SQBIND_DECLARE_TYPEINFO(TYPE, NAME) \
+  namespace sqb \
+  { \
+  template<> \
+  struct TypeInfo<TYPE> \
+  { \
+    enum \
+    { \
+      kTypeID = kScriptVarTypeInstance, \
+      kTypeSize = sizeof(TYPE), \
+      kTypeMask = 'x', \
+      kTypeIsInstance = SQTrue, \
+    }; \
+    const SQChar *m_typeName; \
+    inline TypeInfo() \
+    : m_typeName(_SC(#NAME)) \
+    { \
+    } \
+    inline operator ScriptVarType() const \
+    { \
+      return static_cast<ScriptVarType>(kTypeID); \
+    } \
+  }; \
+  }
+
+namespace sqb
+{
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief Converts from a SQObjectType to a string.
+/// \code
+/// // prints out "string"
+/// scprintf(RawTypeToTypeName(OT_STRING));
+/// \endcode
+//----------------------------------------------------------------------------------------------------------------------
+inline const SQChar *RawTypeToTypeName(SQObjectType type);
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief List of basic types that are supported.
+//----------------------------------------------------------------------------------------------------------------------
+enum ScriptVarType
+{
+  kScriptVarTypeNone = -1,
+  kScriptVarTypeBool = 0,
+  kScriptVarTypeChar,
+  kScriptVarTypeInt8,
+  kScriptVarTypeUInt8,
+  kScriptVarTypeInt16,
+  kScriptVarTypeUInt16,
+  kScriptVarTypeInt32,
+  kScriptVarTypeUInt32,
+  kScriptVarTypeFloat,
+  kScriptVarTypeString,
+  kScriptVarTypeUserPointer,
+  kScriptVarTypeInstance,
+  kScriptVarTypeObject,
+#if defined(_SQ64)
+  kScriptVarTypeInt64,
+  kScriptVarTypeUInt64,
+#endif // defined(_SQ64)
+#if defined(SQUSEDOUBLE)
+  kScriptVarTypeDouble,
+#endif // defined(SQUSEDOUBLE)
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief Template class for gaining info about a bound script type. Specialisation of TypeInfo
+/// is done automatically when a type is declared using #SQBIND_DECLARE_TYPEINFO or any of the other
+/// macros that call it.
+//----------------------------------------------------------------------------------------------------------------------
+template<typename T>
+struct TypeInfo
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeNone,
+    kTypeSize = sizeof(T),
+    kTypeMask = '?',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \cond NO_DOXYGEN
+template<>
+struct TypeInfo<bool>
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeBool,
+    kTypeSize = sizeof(bool),
+    kTypeMask = 'b',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+template<>
+struct TypeInfo<char>
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeChar,
+    kTypeSize = sizeof(char),
+    kTypeMask = 'i',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+template<>
+struct TypeInfo<int8_t>
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeInt8,
+    kTypeSize = sizeof(int8_t),
+    kTypeMask = 'i',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+template<>
+struct TypeInfo<uint8_t>
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeUInt8,
+    kTypeSize = sizeof(uint8_t),
+    kTypeMask = 'i',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+template<>
+struct TypeInfo<int16_t>
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeInt16,
+    kTypeSize = sizeof(int16_t),
+    kTypeMask = 'i',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+template<>
+struct TypeInfo<uint16_t>
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeUInt16,
+    kTypeSize = sizeof(uint16_t),
+    kTypeMask = 'i',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+template<>
+struct TypeInfo<int32_t>
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeInt32,
+    kTypeSize = sizeof(int32_t),
+    kTypeMask = 'n',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+template<>
+struct TypeInfo<uint32_t>
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeUInt32,
+    kTypeSize = sizeof(uint32_t),
+    kTypeMask = 'n',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+template<>
+struct TypeInfo<float>
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeFloat,
+    kTypeSize = sizeof(float),
+    kTypeMask = 'n',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+template<>
+struct TypeInfo<const SQChar*>
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeString,
+    kTypeSize = sizeof(const SQChar*),
+    kTypeMask = 's',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+template<>
+struct TypeInfo<SQUserPointer>
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeUserPointer,
+    kTypeSize = sizeof(SQUserPointer),
+    kTypeMask = 'p',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+template<>
+struct TypeInfo<HSQOBJECT>
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeObject,
+    kTypeSize = sizeof(HSQOBJECT),
+    kTypeMask = '.',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+#if defined(_SQ64)
+
+//----------------------------------------------------------------------------------------------------------------------
+template<>
+struct TypeInfo<int64_t>
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeInt64,
+    kTypeSize = sizeof(int64_t),
+    kTypeMask = 'n',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+template<>
+struct TypeInfo<uint64_t>
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeUInt64,
+    kTypeSize = sizeof(uint64_t),
+    kTypeMask = 'n',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+#endif // defined(_SQ64)
+
+#if defined(SQUSEDOUBLE)
+
+//----------------------------------------------------------------------------------------------------------------------
+template<>
+struct TypeInfo<double>
+{
+  enum
+  {
+    kTypeID = kScriptVarTypeDouble,
+    kTypeSize = sizeof(double),
+    kTypeMask = 'n',
+    kTypeIsInstance = SQFalse,
+  };
+
+  const SQChar *m_typeName;
+
+  TypeInfo();
+};
+
+#endif // defined(SQUSEDOUBLE)
+/// \endcond
+
+} // namespace sqb
+
+// ---- #include <sqbind/sqbTypeInfo.inl>
+// ---> including sqbTypeInfo.inl
+// ---- #pragma once
+//----------------------------------------------------------------------------------------------------------------------
+// Copyright (c) 2012 James Whitworth
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace sqb
+{
+//----------------------------------------------------------------------------------------------------------------------
+inline const SQChar *RawTypeToTypeName(SQObjectType type)
+{
+  switch(_RAW_TYPE(type))
+  {
+  case _RT_NULL:
+    return _SC("null");
+  case _RT_INTEGER:
+    return _SC("integer");
+  case _RT_FLOAT:
+    return _SC("float");
+  case _RT_BOOL:
+    return _SC("bool");
+  case _RT_STRING:
+    return _SC("string");
+  case _RT_TABLE:
+    return _SC("table");
+  case _RT_ARRAY:
+    return _SC("array");
+  case _RT_GENERATOR:
+    return _SC("generator");
+  case _RT_CLOSURE:
+  case _RT_NATIVECLOSURE:
+    return _SC("function");
+  case _RT_USERDATA:
+  case _RT_USERPOINTER:
+    return _SC("userdata");
+  case _RT_THREAD:
+    return _SC("thread");
+  case _RT_CLASS:
+    return _SC("class");
+  case _RT_INSTANCE:
+    return _SC("instance");
+  case _RT_WEAKREF:
+    return _SC("weakref");
+  default:
+    break;
+  }
+  return _SC("");
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<bool>
+//----------------------------------------------------------------------------------------------------------------------
+template<typename T>
+inline TypeInfo<T>::TypeInfo()
+: m_typeName(_SC(""))
+{
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<bool>
+//----------------------------------------------------------------------------------------------------------------------
+inline TypeInfo<bool>::TypeInfo()
+: m_typeName(RawTypeToTypeName(OT_BOOL))
+{
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<char>
+//----------------------------------------------------------------------------------------------------------------------
+inline TypeInfo<char>::TypeInfo()
+: m_typeName(RawTypeToTypeName(OT_INTEGER))
+{
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<int8_t>
+//----------------------------------------------------------------------------------------------------------------------
+inline TypeInfo<int8_t>::TypeInfo()
+: m_typeName(RawTypeToTypeName(OT_INTEGER))
+{
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<uint8_t>
+//----------------------------------------------------------------------------------------------------------------------
+inline TypeInfo<uint8_t>::TypeInfo()
+: m_typeName(RawTypeToTypeName(OT_INTEGER))
+{
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<int16_t>
+//----------------------------------------------------------------------------------------------------------------------
+inline TypeInfo<int16_t>::TypeInfo()
+: m_typeName(RawTypeToTypeName(OT_INTEGER))
+{
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<uint16_t>
+//----------------------------------------------------------------------------------------------------------------------
+inline TypeInfo<uint16_t>::TypeInfo()
+: m_typeName(RawTypeToTypeName(OT_INTEGER))
+{
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<int32_t>
+//----------------------------------------------------------------------------------------------------------------------
+inline TypeInfo<int32_t>::TypeInfo()
+: m_typeName(RawTypeToTypeName(OT_INTEGER))
+{
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<uint32_t>
+//----------------------------------------------------------------------------------------------------------------------
+inline TypeInfo<uint32_t>::TypeInfo()
+: m_typeName(RawTypeToTypeName(OT_INTEGER))
+{
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<float>
+//----------------------------------------------------------------------------------------------------------------------
+inline TypeInfo<float>::TypeInfo()
+: m_typeName(RawTypeToTypeName(OT_FLOAT))
+{
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<const SQChar*>
+//----------------------------------------------------------------------------------------------------------------------
+inline TypeInfo<const SQChar*>::TypeInfo()
+: m_typeName(RawTypeToTypeName(OT_STRING))
+{
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<SQUserPointer>
+//----------------------------------------------------------------------------------------------------------------------
+inline TypeInfo<SQUserPointer>::TypeInfo()
+: m_typeName(RawTypeToTypeName(OT_USERPOINTER))
+{
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<HSQOBJECT>
+//----------------------------------------------------------------------------------------------------------------------
+inline TypeInfo<HSQOBJECT>::TypeInfo()
+: m_typeName(_SC("object"))
+{
+}
+
+#if defined(_SQ64)
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<int64_t>
+//----------------------------------------------------------------------------------------------------------------------
+inline TypeInfo<int64_t>::TypeInfo()
+: m_typeName(RawTypeToTypeName(OT_INTEGER))
+{
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<uint64_t>
+//----------------------------------------------------------------------------------------------------------------------
+inline TypeInfo<uint64_t>::TypeInfo()
+: m_typeName(RawTypeToTypeName(OT_INTEGER))
+{
+}
+
+#endif
+
+#if defined(SQUSEDOUBLE)
+
+//----------------------------------------------------------------------------------------------------------------------
+// TypeInfo<double>
+//----------------------------------------------------------------------------------------------------------------------
+inline TypeInfo<double>::TypeInfo()
+: m_typeName(RawTypeToTypeName(OT_FLOAT))
+{
+}
+
+#endif
+
+} // namespace sqb
+
+// <--- back to sqbTypeInfo.h
+
+// <--- back to xsqbind.h
+
+
+#include <vector>
+#include <string>
+
+
+
+namespace sqb {
+
+	//template<typename T>
+	//T Get(TypeWrapper<T> wrapper, HSQUIRRELVM vm, SQInteger index);
+
+	template<>
+	struct TypeInfo<SqRef>
+	{
+	  enum
+	  {
+		kTypeID = kScriptVarTypeObject,
+		kTypeSize = sizeof(SqRef),
+		kTypeMask = '.',
+		kTypeIsInstance = SQFalse,
+	  };
+	  const SQChar *m_typeName;
+	  TypeInfo() : m_typeName(_SC("SqRef")) {}
+	};
+
+	template<>
+	struct TypeInfo<std::string>
+	{
+	  enum
+	  {
+		kTypeID = kScriptVarTypeObject,
+		kTypeSize = sizeof(std::string),
+		kTypeMask = 's',
+		kTypeIsInstance = SQFalse,
+	  };
+	  const SQChar *m_typeName;
+	  TypeInfo() : m_typeName(_SC("string")) {}
+	};
+
+
+	// ---- vec2 ----
+#ifdef XSQ_VEC2
+	template<> struct TypeInfo<XSQ_VEC2>
+	{
+		enum
+		{
+			kTypeID = kScriptVarTypeInstance,
+			kTypeSize = sizeof(XSQ_VEC2),
+			kTypeMask = 'x',
+			kTypeIsInstance = SQTrue,
+		};
+		const SQChar *m_typeName;
+		inline TypeInfo() : m_typeName(_SC("vec2"))
+		{
+		}
+		inline operator ScriptVarType() const
+		{
+			return static_cast<ScriptVarType>(kTypeID);
+		}
+	}; \
+	template<> inline bool Match<XSQ_VEC2>(TypeWrapper<XSQ_VEC2>, HSQUIRRELVM vm, SQInteger idx)					{ return true; }
+	template<> inline bool Match<XSQ_VEC2 &>(TypeWrapper<XSQ_VEC2 &>, HSQUIRRELVM vm, SQInteger idx)				{ return true; }
+	template<> inline bool Match<const XSQ_VEC2 &>(TypeWrapper<const XSQ_VEC2 &>, HSQUIRRELVM vm, SQInteger idx)	{ return true; }
+	inline XSQ_VEC2 Get(TypeWrapper<XSQ_VEC2>, HSQUIRRELVM vm, SQInteger idx)
+	{
+		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
+		XSQ_VEC2 value = XSQ_VEC2(0,0);
+		sqvm._sq_get(value,idx);
+		return value;
+	}
+	inline XSQ_VEC2 Get(TypeWrapper<XSQ_VEC2&>, HSQUIRRELVM vm, SQInteger idx)
+	{
+		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
+		XSQ_VEC2 value = XSQ_VEC2(0, 0);
+		sqvm._sq_get(value, idx);
+		return value;
+	}
+	inline XSQ_VEC2 Get(TypeWrapper<const XSQ_VEC2 &>, HSQUIRRELVM vm, SQInteger idx)
+	{
+		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
+		XSQ_VEC2 value = XSQ_VEC2(0, 0);
+		sqvm._sq_get(value, idx);
+		return value;
+	}
+	template<> inline SQRESULT Push<XSQ_VEC2>(HSQUIRRELVM vm, XSQ_VEC2 &value)
+	{
+		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
+		return sqvm._sq_push(value);
+	}
+	template<> inline SQRESULT Push<XSQ_VEC2>(HSQUIRRELVM vm, const XSQ_VEC2 &value)
+	{
+		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
+		return sqvm._sq_push(value);
+	}
+#endif
+
+	// ---- vec3 ----
+#ifdef XSQ_VEC3
+	template<> struct TypeInfo<XSQ_VEC3>
+	{
+		enum
+		{
+			kTypeID = kScriptVarTypeInstance,
+			kTypeSize = sizeof(XSQ_VEC3),
+			kTypeMask = 'x',
+			kTypeIsInstance = SQTrue,
+		};
+		const SQChar *m_typeName;
+		inline TypeInfo() : m_typeName(_SC("vec3"))
+		{
+		}
+		inline operator ScriptVarType() const
+		{
+			return static_cast<ScriptVarType>(kTypeID);
+		}
+	};
+	template<> inline bool Match<XSQ_VEC3>(TypeWrapper<XSQ_VEC3>, HSQUIRRELVM vm, SQInteger idx)					{ return true; }
+	template<> inline bool Match<XSQ_VEC3 &>(TypeWrapper<XSQ_VEC3 &>, HSQUIRRELVM vm, SQInteger idx)				{ return true; }
+	template<> inline bool Match<const XSQ_VEC3 &>(TypeWrapper<const XSQ_VEC3 &>, HSQUIRRELVM vm, SQInteger idx)	{ return true; }
+	inline XSQ_VEC3 Get(TypeWrapper<XSQ_VEC3>, HSQUIRRELVM vm, SQInteger idx)
+	{
+		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
+		XSQ_VEC3 value = XSQ_VEC3(0, 0, 0);
+		sqvm._sq_get(value, idx);
+		return value;
+	}
+	inline XSQ_VEC3 Get(TypeWrapper<XSQ_VEC3&>, HSQUIRRELVM vm, SQInteger idx)
+	{
+		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
+		XSQ_VEC3 value = XSQ_VEC3(0, 0, 0);
+		sqvm._sq_get(value, idx);
+		return value;
+	}
+	inline XSQ_VEC3 Get(TypeWrapper<const XSQ_VEC3 &>, HSQUIRRELVM vm, SQInteger idx)
+	{
+		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
+		XSQ_VEC3 value = XSQ_VEC3(0, 0, 0);
+		sqvm._sq_get(value, idx);
+		return value;
+	}
+	template<> inline SQRESULT Push<XSQ_VEC3>(HSQUIRRELVM vm, XSQ_VEC3 &value)
+	{
+		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
+		return sqvm._sq_push(value);
+	}
+	template<> inline SQRESULT Push<XSQ_VEC3>(HSQUIRRELVM vm, const XSQ_VEC3 &value)
+	{
+		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
+		return sqvm._sq_push(value);
+	}
+#endif
+}
+
+
+#define XSQ_REGISTER_FN(fn)		\
+	static void __xsq_register_##fn(HSQUIRRELVM vm) {	\
+		sq_pushroottable(vm);							\
+		sqb::Bind::BindFunction(vm, -1, &fn, #fn);		\
+		sq_poptop(vm);									\
+	}													\
+	static char __xsq_register_trigger_##fn = (__xsq_register::add(__xsq_register_##fn), 0);
+
+
+
+// ---- #include "sqbind/SquirrelBind.h"
+// ---> including SquirrelBind.h
+// ---- #pragma once
+//----------------------------------------------------------------------------------------------------------------------
+// Copyright (c) 2012 James Whitworth
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the 'Software'), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//----------------------------------------------------------------------------------------------------------------------
+// ---- #include <sqbind/sqbAssert.h>
+// ---> including sqbAssert.h
+// <--- back to SquirrelBind.h
+// ---- #include <sqbind/sqbBind.h>
+// ---> including sqbBind.h
+// ---- #pragma once
+//----------------------------------------------------------------------------------------------------------------------
+// Copyright (c) 2012 James Whitworth
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//----------------------------------------------------------------------------------------------------------------------
+#include <cstring>
+//----------------------------------------------------------------------------------------------------------------------
+// ---- #include <sqbind/autogen/sqbCall.h>
+// ---> including sqbCall.h
+// ---- #pragma once
+//----------------------------------------------------------------------------------------------------------------------
+// Copyright (c) 2012 James Whitworth
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the 'Software'), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//----------------------------------------------------------------------------------------------------------------------
+// ---- #include "sqbind/autogen/sqbReturnSpecialisation.h"
+// ---> including sqbReturnSpecialisation.h
+// ---- #pragma once
+//----------------------------------------------------------------------------------------------------------------------
+// Copyright (c) 2012 James Whitworth
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the 'Software'), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//----------------------------------------------------------------------------------------------------------------------
+// ---- #include "sqbind/sqbStackHandler.h"
+// ---> including sqbStackHandler.h
+// ---- #pragma once
+//----------------------------------------------------------------------------------------------------------------------
+// Copyright (c) 2012 James Whitworth
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//----------------------------------------------------------------------------------------------------------------------
+// ---- #include <sqbind/sqbAssert.h>
+// ---> including sqbAssert.h
+// <--- back to sqbStackHandler.h
+// ---- #include <sqbind/sqbClassHelpers.h>
+// ---> including sqbClassHelpers.h
+// ---- #pragma once
+//----------------------------------------------------------------------------------------------------------------------
+// Copyright (c) 2012 James Whitworth
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//----------------------------------------------------------------------------------------------------------------------
+// ---- #include <sqbind/sqbTypeInfo.h>
+// ---> including sqbTypeInfo.h
+// <--- back to sqbClassHelpers.h
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace sqb
+{
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief Default function used as _typeof metamethod func of classes bound with #RegisterClassType.
+//----------------------------------------------------------------------------------------------------------------------
+template<typename ClassType>
+SQInteger TypeOf(HSQUIRRELVM vm);
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief Creates an instance of classObject and set its release hook without invoking the constructor.
+/// Resulting instance is left on the top of the stack. The function will fail if classObject is not of
+/// type OT_CLASS or the call to sq_createinstance fails. If the call to sq_createinstance fails then
+/// the error can be retrieved by getting the last error for the vm.
+//----------------------------------------------------------------------------------------------------------------------
+SQBIND_API bool CreateNativeClassInstance(HSQUIRRELVM vm, HSQOBJECT classObject, SQRELEASEHOOK hook);
+
+}
+
+// ---- #include <sqbind/sqbClassHelpers.inl>
+// ---> including sqbClassHelpers.inl
+// ---- #pragma once
+//----------------------------------------------------------------------------------------------------------------------
+// Copyright (c) 2012 James Whitworth
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace sqb
+{
+//----------------------------------------------------------------------------------------------------------------------
+template<typename ClassType>
+SQInteger TypeOf(HSQUIRRELVM v)
+{
+  sq_pushstring(v, TypeInfo<ClassType>().m_typeName, -1);
+  return 1;
+}
+
+} // namespace sqb
+
+// <--- back to sqbClassHelpers.h
+
+// <--- back to sqbStackHandler.h
+// ---- #include <sqbind/sqbClassTypeTag.h>
+// ---> including sqbClassTypeTag.h
+// ---- #pragma once
+//----------------------------------------------------------------------------------------------------------------------
+// Copyright (c) 2012 James Whitworth
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//----------------------------------------------------------------------------------------------------------------------
+#include <cstdio>
+//----------------------------------------------------------------------------------------------------------------------
+// ---- #include <sqbind/sqbAssert.h>
+// ---> including sqbAssert.h
+// <--- back to sqbClassTypeTag.h
+// ---- #include <sqbind/sqbTypeInfo.h>
+// ---> including sqbTypeInfo.h
+// <--- back to sqbClassTypeTag.h
+// ---- #include <sqbind/sqbTypeTraits.h>
+// ---> including sqbTypeTraits.h
+// ---- #pragma once
+//----------------------------------------------------------------------------------------------------------------------
+// Copyright (c) 2012 James Whitworth
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//----------------------------------------------------------------------------------------------------------------------
+// ---- #include <squirrel.h>
+// ---> including squirrel.h
+// <--- back to sqbTypeTraits.h
+//----------------------------------------------------------------------------------------------------------------------
+
+/// \defgroup typetraits Class type traits
+//@{
+
+namespace sqb
+{
+namespace traits
+{
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief This helper struct defines whether a class is a pod type. When an instance of a bound pod class is
+/// released there is no need to call its destructor. For classes bound using ClassUserDataClassDef this means
+/// there is no need for a release hook at all. For classes bound using SqMallocClassDef there is only a need
+/// to call sq_free. There is no way to automatically check if a class is a pod type so classes must be declared
+/// as such using DECLARE_TYPE_POD.
+//----------------------------------------------------------------------------------------------------------------------
+template<typename T>
+struct IsPod { enum { kValue = false }; };
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief Used to query whether a type is copyable. To make a type non-copyable specialise this class
+/// or use the macros #SQBIND_DECLARE_NON_COPYABLE_CLASS_NAME or #SQBIND_DECLARE_NON_COPYABLE_CLASS.
+/// Copyable types will use the assignment operator to copy them, non-copyable types by default will use
+/// memcpy and sizeof(T). To change the copy operation of a type specialise ClassTypeCopyImpl before
+/// declaring the type.
+//----------------------------------------------------------------------------------------------------------------------
+template<typename T>
+struct IsCopyable { enum { kValue = true }; };
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief This helper struct defines whether a class is aligned or not.
+//----------------------------------------------------------------------------------------------------------------------
+template<typename T>
+struct IsAligned { enum { kIsAligned = false, kAlignment = 4, }; };
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief Used to remove const, pointer and reference qualifiers from a given type. Used when querying
+/// information about a type with TypeInfo and other traits classes.
+//----------------------------------------------------------------------------------------------------------------------
+template<typename Type>
+struct RemoveQualifiers { typedef Type kType; };
+
+} // namespace traits
+
+} // namespace sqb
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \def SQBIND_TYPE_POD(TYPE)
+/// \brief Informs sqbind a class is a pod type, this means the binding code can optimise the class by simplifying
+/// or in some cases removing each instances release hook. This does not affect the behaviour of Push so if the release
+/// hook is set manually using ClassType::SetReleaseHook it will still be set for each instance of classes created with
+/// Push(const MyClass&).
+//----------------------------------------------------------------------------------------------------------------------
+#define SQBIND_TYPE_POD(TYPE) \
+  namespace sqb \
+  { \
+  namespace traits \
+  { \
+  template<> \
+  struct IsPod<TYPE> { enum { kValue = true }; }; \
+  } \
+  }
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \def SQBIND_TYPE_NON_COPYABLE(TYPE)
+/// \brief 
+//----------------------------------------------------------------------------------------------------------------------
+#define SQBIND_TYPE_NON_COPYABLE(TYPE) \
+  namespace sqb \
+  { \
+  namespace traits \
+  { \
+  template<> \
+  struct IsCopyable<TYPE> { enum { kValue = false }; }; \
+  } \
+  }
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \def SQBIND_TYPE_ALIGNED(TYPE, ALIGNMENT)
+/// \brief Declares a class type to be aligned.
+/// \note Alignment currently only works with classes declared with SQBIND_DECLARE_CLASS and ClassDefinition or
+///   SQBIND_DECLARE_CLASSUD_CLASS and ClassUserDataClassDefinition. Instances bound with the other macros/class
+///   definitions will not be aligned.
+//----------------------------------------------------------------------------------------------------------------------
+#define SQBIND_TYPE_ALIGNED(TYPE, ALIGNMENT) \
+  namespace sqb \
+  { \
+  namespace traits \
+  { \
+  template<> \
+  struct IsAligned<TYPE> { enum { kIsAligned = true, kAlignment = ALIGNMENT, }; }; \
+  } \
+  }
+
+//@}
+
+// ---- #include <sqbind/sqbTypeTraits.inl>
+// ---> including sqbTypeTraits.inl
+// ---- #pragma once
+//----------------------------------------------------------------------------------------------------------------------
+// Copyright (c) 2012 James Whitworth
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace sqb
+{
+namespace traits
+{
+//----------------------------------------------------------------------------------------------------------------------
+// RemoveQualifiers specialisations.
+//----------------------------------------------------------------------------------------------------------------------
+template<typename Type>
+struct RemoveQualifiers<const Type> { typedef Type kType; };
+
+//----------------------------------------------------------------------------------------------------------------------
+template<typename Type>
+struct RemoveQualifiers<Type &> { typedef Type kType; };
+
+//----------------------------------------------------------------------------------------------------------------------
+template<typename Type>
+struct RemoveQualifiers<Type *> { typedef Type kType; };
+
+//----------------------------------------------------------------------------------------------------------------------
+template<typename Type>
+struct RemoveQualifiers<const Type &> { typedef Type kType; };
+
+//----------------------------------------------------------------------------------------------------------------------
+template<typename Type>
+struct RemoveQualifiers<const Type *> { typedef Type kType; };
+
+//----------------------------------------------------------------------------------------------------------------------
+template<typename Type>
+struct RemoveQualifiers<Type *&> { typedef Type kType; };
+
+//----------------------------------------------------------------------------------------------------------------------
+template<typename Type>
+struct RemoveQualifiers<const Type *&> { typedef Type kType; };
+
+//----------------------------------------------------------------------------------------------------------------------
+// specialisation for strings so they are correctly identified when using
+// RemoveQualifiers combined with TypeInfo.
+template<>
+struct RemoveQualifiers<const SQChar *> { typedef const SQChar *kType; };
+
+} // namespace traits
+
+} // namespace sqb
+
+// <--- back to sqbTypeTraits.h
+
+// <--- back to sqbClassTypeTag.h
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace sqb
+{
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief For binding classes that have no base class.
+//----------------------------------------------------------------------------------------------------------------------
+class NoBaseClass { };
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief
+//----------------------------------------------------------------------------------------------------------------------
+typedef void (*CopyInstanceFunction)(void *dst, void *src);
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief
+//----------------------------------------------------------------------------------------------------------------------
+class SQBIND_API ClassTypeTagBase
+{
+public:
+  ClassTypeTagBase();
+  virtual ~ClassTypeTagBase();
+
+  /// \brief As this class is used as a type tag it will be cast to void pointers and back again, this check
+  /// should ensure that other typetags cast from void pointers are not incorrectly used as this.
+  bool IsValid() const;
+
+  /// \brief Many types cannot have offset, since "this" is the same for all base classes of
+  /// an instance. Detect this, to avoid sum up base offsets all the time.
+  bool MayHaveOffset() const;
+  /// \brief Gets the offset to this class from the base class pointer.
+  ptrdiff_t GetOffsetTo(const ClassTypeTagBase *pbase) const;
+
+  /// \brief Get the script name of the type
+  const SQChar *GetTypeName() const;
+
+  /// \brief Sets the release hook for the class.
+  /// \note Always use the instance returned by the static Get function to call this func.
+  void SetReleaseHook(SQRELEASEHOOK releaseHook);
+  /// \brief Get the release hook for this class.
+  /// \note Always use the instance returned by the static Get function to call this func.
+  SQRELEASEHOOK GetReleaseHook() const;
+
+  /// \brief Stores the class in the vm's registry table.
+  void SetClassObject(HSQUIRRELVM vm, HSQOBJECT classObject);
+  /// \brief Retrieves the class from the vm's registry table. The returned object handle is not a strong
+  /// reference to the class object, make sure to call sq_addref if a strong reference is needed.
+  HSQOBJECT GetClassObject(HSQUIRRELVM vm) const;
+
+  /// \brief Checks that a class userdata is exactly equal to a specific size.
+  /// \note Class user data is set using sq_setclassudsize or ClassDefBase::SetUserDataSize.
+  bool CheckClassUserDataSize(HSQUIRRELVM vm, SQInteger expectedSize) const;
+
+  virtual CopyInstanceFunction GetCopyFunction() const = 0;
+
+protected:
+  /// \brief Name of type.
+  const SQChar *m_name;
+  /// \brief Sets the release hook for the class.
+  SQRELEASEHOOK m_releaseHook;
+  /// \brief pointer to base class type.
+  ClassTypeTagBase *m_baseType;
+  /// \brief Adjustment of this pointer between this type and its base class.
+  ptrdiff_t m_offset;
+  /// \brief Set to 0 for types that cannot possibly have offset.
+  mutable int8_t m_mayHaveOffset;
+
+private:
+  static const int32_t m_expectedValidityCheck;
+  const int32_t m_validityCheck;
+
+  // disable copy construction
+  //
+  ClassTypeTagBase(const ClassTypeTagBase&);
+  const ClassTypeTagBase& operator = (const ClassTypeTagBase&);
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief This level handles instance copying in different ways
+//----------------------------------------------------------------------------------------------------------------------
+template<typename T, bool copyable>
+class ClassTypeTagCopyImpl;
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief Base class to do copying using the assignment operator.
+//----------------------------------------------------------------------------------------------------------------------
+template<typename ClassType>
+class ClassTypeTagCopyImpl<ClassType, true> : public ClassTypeTagBase
+{
+protected:
+  /// \brief this works for types with assignment operator
+  static void CopyInstance(ClassType *dst, ClassType *src);
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief Base class to do copying with memcpy
+//----------------------------------------------------------------------------------------------------------------------
+template<typename ClassType>
+class ClassTypeTagCopyImpl<ClassType, false> : public ClassTypeTagBase
+{
+protected:
+  /// \brief This will assert if possible or do nothing.
+  static void CopyInstance(ClassType *dst, ClassType *src);
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+/// \brief Used to get info about types.
+//----------------------------------------------------------------------------------------------------------------------
+template<typename ClassType>
+class ClassTypeTag : public ClassTypeTagCopyImpl<ClassType, traits::IsCopyable<ClassType>::kValue>
+{
+public:
+  typedef ClassTypeTagCopyImpl<ClassType, traits::IsCopyable<ClassType>::kValue> ThisBaseType;
+
+  // helps resolve unqualified names to members of the dependent base class.
+  using ThisBaseType::m_baseType;
+  using ThisBaseType::m_name;
+  using ThisBaseType::m_offset;
+
+#if defined(SQBIND_COMPILER_MSVC)
+#pragma warning(push)
+// nonstandard extension used: override specifier 'override'
+#pragma warning(disable: 4481)
+#endif
+
+  /// \brief Override from ClassTypeTagBase
+  CopyInstanceFunction GetCopyFunction() const SQBIND_OVERRIDE;
+
+#if defined(SQBIND_COMPILER_MSVC)
+#pragma warning(pop)
+#endif
+
+  /// \brief Sets the base class type for this type.
+  /// \note Always use the instance returned by the static Get function to call this func.
+  ///   Have to pass a dummy pointer to the class type to help gcc out.
+  template<typename BaseClassType>
+  void SetBaseClass(BaseClassType *);
+
+  /// \brief Gets an instance of ClassType<T> to save many being created.
+  static ClassTypeTag<ClassType> *Get();
+
+protected:
+  ClassTypeTag();
+
+private:
+  static ClassTypeTag m_instance;
+
+  // copy construction and assignment are disabled
+  ClassTypeTag(const ClassTypeTag &rhs);
+  const ClassTypeTag &operator = (const ClassTypeTag &rhs);
+};
+
+}
+
+// ---- #include <sqbind/sqbClassTypeTag.inl>
+// ---> including sqbClassTypeTag.inl
+// ---- #pragma once
+//----------------------------------------------------------------------------------------------------------------------
+// Copyright (c) 2012 James Whitworth
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace sqb
+{
+//----------------------------------------------------------------------------------------------------------------------
+// ClassTypeTagBase functions.
+//----------------------------------------------------------------------------------------------------------------------
+inline bool ClassTypeTagBase::IsValid() const
+{
+  return m_validityCheck == m_expectedValidityCheck;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+inline const SQChar *ClassTypeTagBase::GetTypeName() const
+{
+  return m_name;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+inline void ClassTypeTagBase::SetReleaseHook(SQRELEASEHOOK releaseHook)
+{
+  m_releaseHook = releaseHook;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+inline SQRELEASEHOOK ClassTypeTagBase::GetReleaseHook() const
+{
+  return m_releaseHook;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+template<typename ClassType>
+inline void ClassTypeTagCopyImpl<ClassType, true>::CopyInstance(ClassType *dst, ClassType *src)
+{
+  *dst = *src;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+template<typename ClassType>
+inline void ClassTypeTagCopyImpl<ClassType, false>::CopyInstance(
+  ClassType *SQBIND_UNUSED(dst),
+  ClassType *SQBIND_UNUSED(src))
+{
+  SQBIND_ASSERT_FAIL();
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+/// ClassTypeTag<ClassType>
+//----------------------------------------------------------------------------------------------------------------------
+template<typename ClassType>
+ClassTypeTag<ClassType> ClassTypeTag<ClassType>::m_instance;
+
+//----------------------------------------------------------------------------------------------------------------------
+template<typename ClassType>
+inline CopyInstanceFunction ClassTypeTag<ClassType>::GetCopyFunction() const
+{
+  return reinterpret_cast<CopyInstanceFunction>(&ThisBaseType::CopyInstance);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+template<typename ClassType>
+template<typename BaseClassType>
+void ClassTypeTag<ClassType>::SetBaseClass(BaseClassType *)
+{
+  m_baseType = ClassTypeTag<BaseClassType>::Get();
+
+  // get the this pointer as the type ClassType (could be anything instead of this other than nullptr)
+  //
+  const ClassType *pt = reinterpret_cast<ClassType *>(this);
+  // subtract the type pointer from the same pointer cast to the base type
+  // the cast to base type offsets the pointer if there is any offset between types BC and T
+  // subtracting T* from BC* for the same instance will result in the offset.
+  //
+  m_offset = reinterpret_cast<const char *>(pt) - reinterpret_cast<const char *>(static_cast<const BaseClassType *>(pt));
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+template<typename ClassType>
+inline ClassTypeTag<ClassType> *ClassTypeTag<ClassType>::Get()
+{
+  return &m_instance;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+template<>
+inline ClassTypeTag<NoBaseClass> *ClassTypeTag<NoBaseClass>::Get()
+{
+  return nullptr;
+}
+
+// as all ClassTypeTagBase are static instances this destructor is hit after the test coverage scanning has finished
+//
+SQBIND_TEST_COVERAGE_OFF()
+//----------------------------------------------------------------------------------------------------------------------
+template<typename ClassType>
+inline ClassTypeTag<ClassType>::ClassTypeTag()
+{
+  m_name = TypeInfo<ClassType>().m_typeName;
+}
+SQBIND_TEST_COVERAGE_ON()
+
+} // namespace sqb
+
+// <--- back to sqbClassTypeTag.h
+
+// <--- back to sqbStackHandler.h
+// ---- #include <sqbind/sqbStackUtils.h>
+// ---> including sqbStackUtils.h
 // <--- back to sqbStackHandler.h
 // ---- #include <sqbind/sqbTypeInfo.h>
 // ---> including sqbTypeInfo.h
@@ -13873,135 +14070,4 @@ inline void TableIterator::GetValue(ValueType *value) const
 //----------------------------------------------------------------------------------------------------------------------
 
 // <--- back to xsqbind.h
-
-#include <vector>
-#include <string>
-
-
-
-namespace sqb {
-	template<>
-	struct TypeInfo<SqRef>
-	{
-	  enum
-	  {
-		kTypeID = kScriptVarTypeObject,
-		kTypeSize = sizeof(SqRef),
-		kTypeMask = '.',
-		kTypeIsInstance = SQFalse,
-	  };
-	  const SQChar *m_typeName;
-	  TypeInfo() : m_typeName(_SC("SqRef")) {}
-	};
-
-	template<>
-	struct TypeInfo<std::string>
-	{
-	  enum
-	  {
-		kTypeID = kScriptVarTypeObject,
-		kTypeSize = sizeof(std::string),
-		kTypeMask = 's',
-		kTypeIsInstance = SQFalse,
-	  };
-	  const SQChar *m_typeName;
-	  TypeInfo() : m_typeName(_SC("string")) {}
-	};
-
-
-	// ---- vec2 ----
-#ifdef XSQ_VEC2
-	template<> struct TypeInfo<XSQ_VEC2>
-	{
-		enum
-		{
-			kTypeID = kScriptVarTypeInstance,
-			kTypeSize = sizeof(XSQ_VEC2),
-			kTypeMask = 'x',
-			kTypeIsInstance = SQTrue,
-		};
-		const SQChar *m_typeName;
-		inline TypeInfo() : m_typeName(_SC("vec2"))
-		{
-		}
-		inline operator ScriptVarType() const
-		{
-			return static_cast<ScriptVarType>(kTypeID);
-		}
-	}; \
-	template<> inline bool Match<XSQ_VEC2>(TypeWrapper<XSQ_VEC2>, HSQUIRRELVM vm, SQInteger idx)					{ return true; }
-	template<> inline bool Match<XSQ_VEC2 &>(TypeWrapper<XSQ_VEC2 &>, HSQUIRRELVM vm, SQInteger idx)				{ return true; }
-	template<> inline bool Match<const XSQ_VEC2 &>(TypeWrapper<const XSQ_VEC2 &>, HSQUIRRELVM vm, SQInteger idx)	{ return true; }
-	template<> inline XSQ_VEC2 &Get<XSQ_VEC2>(TypeWrapper<XSQ_VEC2>, HSQUIRRELVM vm, SQInteger idx)
-	{
-		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
-		static XSQ_VEC2 value;
-		value = XSQ_VEC2(0,0);
-		sqvm._sq_get(value,idx);
-		return value;
-	}
-	template<> inline SQRESULT Push<XSQ_VEC2>(HSQUIRRELVM vm, XSQ_VEC2 &value)
-	{
-		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
-		return sqvm._sq_push(value);
-	}
-	template<> inline SQRESULT Push<XSQ_VEC2>(HSQUIRRELVM vm, const XSQ_VEC2 &value)
-	{
-		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
-		return sqvm._sq_push(value);
-	}
-#endif
-
-	// ---- vec3 ----
-#ifdef XSQ_VEC3
-	template<> struct TypeInfo<XSQ_VEC3>
-	{
-		enum
-		{
-			kTypeID = kScriptVarTypeInstance,
-			kTypeSize = sizeof(XSQ_VEC3),
-			kTypeMask = 'x',
-			kTypeIsInstance = SQTrue,
-		};
-		const SQChar *m_typeName;
-		inline TypeInfo() : m_typeName(_SC("vec3"))
-		{
-		}
-		inline operator ScriptVarType() const
-		{
-			return static_cast<ScriptVarType>(kTypeID);
-		}
-	}; \
-	template<> inline bool Match<XSQ_VEC3>(TypeWrapper<XSQ_VEC3>, HSQUIRRELVM vm, SQInteger idx)					{ return true; }
-	template<> inline bool Match<XSQ_VEC3 &>(TypeWrapper<XSQ_VEC3 &>, HSQUIRRELVM vm, SQInteger idx)				{ return true; }
-	template<> inline bool Match<const XSQ_VEC3 &>(TypeWrapper<const XSQ_VEC3 &>, HSQUIRRELVM vm, SQInteger idx)	{ return true; }
-	template<> inline XSQ_VEC3 &Get<XSQ_VEC3>(TypeWrapper<XSQ_VEC3>, HSQUIRRELVM vm, SQInteger idx)
-	{
-		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
-		static XSQ_VEC3 value;
-		value = XSQ_VEC3(0,0,0);
-		sqvm._sq_get(value,idx);
-		return value;
-	}
-	template<> inline SQRESULT Push<XSQ_VEC3>(HSQUIRRELVM vm, XSQ_VEC3 &value)
-	{
-		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
-		return sqvm._sq_push(value);
-	}
-	template<> inline SQRESULT Push<XSQ_VEC3>(HSQUIRRELVM vm, const XSQ_VEC3 &value)
-	{
-		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
-		return sqvm._sq_push(value);
-	}
-#endif
-}
-
-
-#define XSQ_REGISTER_FN(fn)		\
-	static void __xsq_register_##fn(HSQUIRRELVM vm) {	\
-		sq_pushroottable(vm);							\
-		sqb::Bind::BindFunction(vm, -1, &fn, #fn);		\
-		sq_poptop(vm);									\
-	}													\
-	static char __xsq_register_trigger_##fn = (__xsq_register::add(__xsq_register_##fn), 0);
 

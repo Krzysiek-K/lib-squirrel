@@ -21,19 +21,22 @@ print("\n")
 print("\n")
 
 print( bigtest3( vec3(1,2,3), vec3(4,5,6), vec3(7,8,9) ) )
-
-print("\n")
 print("\n")
 
-print( bigtest2( vec2(1,2), vec2(3,4), vec2(5,6) ) )
+bar3( 11, 12, 13 );
 
-print("\n")
-print("\n")
-
-printobj( bigtestb( box1, box2, box3 ) )
-
-print("\n")
-print("\n")
-
-
-vv <- vec3(10,20,30)
+//print("\n")
+//print("\n")
+//
+//print( bigtest2( vec2(1,2), vec2(3,4), vec2(5,6) ) )
+//
+//print("\n")
+//print("\n")
+//
+//printobj( bigtestb( box1, box2, box3 ) )
+//
+//print("\n")
+//print("\n")
+//
+//
+//vv <- vec3(10,20,30)

@@ -5,3 +5,7 @@
 *.sdf
 *.suo
 *.opensdf
+/Release
+/lib-squirrel-packed/Release
+*.opendb
+/lib-squirrel.VC.db

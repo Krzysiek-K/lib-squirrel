@@ -2,8 +2,12 @@
 #pragma once
 
 
+
 #include "xsquirrel.h"
-#include "sqbind/SquirrelBind.h"
+
+#include "sqbind/sqbStackUtils.h"
+#include "sqbind/sqbTypeInfo.h"
+
 
 #include <vector>
 #include <string>
@@ -11,6 +15,10 @@
 
 
 namespace sqb {
+
+	//template<typename T>
+	//T Get(TypeWrapper<T> wrapper, HSQUIRRELVM vm, SQInteger index);
+
 	template<>
 	struct TypeInfo<SqRef>
 	{
@@ -63,12 +71,25 @@ namespace sqb {
 	template<> inline bool Match<XSQ_VEC2>(TypeWrapper<XSQ_VEC2>, HSQUIRRELVM vm, SQInteger idx)					{ return true; }
 	template<> inline bool Match<XSQ_VEC2 &>(TypeWrapper<XSQ_VEC2 &>, HSQUIRRELVM vm, SQInteger idx)				{ return true; }
 	template<> inline bool Match<const XSQ_VEC2 &>(TypeWrapper<const XSQ_VEC2 &>, HSQUIRRELVM vm, SQInteger idx)	{ return true; }
-	template<> inline XSQ_VEC2 &Get<XSQ_VEC2>(TypeWrapper<XSQ_VEC2>, HSQUIRRELVM vm, SQInteger idx)
+	inline XSQ_VEC2 Get(TypeWrapper<XSQ_VEC2>, HSQUIRRELVM vm, SQInteger idx)
 	{
 		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
-		static XSQ_VEC2 value;
-		value = XSQ_VEC2(0,0);
+		XSQ_VEC2 value = XSQ_VEC2(0,0);
 		sqvm._sq_get(value,idx);
+		return value;
+	}
+	inline XSQ_VEC2 Get(TypeWrapper<XSQ_VEC2&>, HSQUIRRELVM vm, SQInteger idx)
+	{
+		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
+		XSQ_VEC2 value = XSQ_VEC2(0, 0);
+		sqvm._sq_get(value, idx);
+		return value;
+	}
+	inline XSQ_VEC2 Get(TypeWrapper<const XSQ_VEC2 &>, HSQUIRRELVM vm, SQInteger idx)
+	{
+		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
+		XSQ_VEC2 value = XSQ_VEC2(0, 0);
+		sqvm._sq_get(value, idx);
 		return value;
 	}
 	template<> inline SQRESULT Push<XSQ_VEC2>(HSQUIRRELVM vm, XSQ_VEC2 &value)
@@ -102,16 +123,29 @@ namespace sqb {
 		{
 			return static_cast<ScriptVarType>(kTypeID);
 		}
-	}; \
+	};
 	template<> inline bool Match<XSQ_VEC3>(TypeWrapper<XSQ_VEC3>, HSQUIRRELVM vm, SQInteger idx)					{ return true; }
 	template<> inline bool Match<XSQ_VEC3 &>(TypeWrapper<XSQ_VEC3 &>, HSQUIRRELVM vm, SQInteger idx)				{ return true; }
 	template<> inline bool Match<const XSQ_VEC3 &>(TypeWrapper<const XSQ_VEC3 &>, HSQUIRRELVM vm, SQInteger idx)	{ return true; }
-	template<> inline XSQ_VEC3 &Get<XSQ_VEC3>(TypeWrapper<XSQ_VEC3>, HSQUIRRELVM vm, SQInteger idx)
+	inline XSQ_VEC3 Get(TypeWrapper<XSQ_VEC3>, HSQUIRRELVM vm, SQInteger idx)
 	{
 		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
-		static XSQ_VEC3 value;
-		value = XSQ_VEC3(0,0,0);
-		sqvm._sq_get(value,idx);
+		XSQ_VEC3 value = XSQ_VEC3(0, 0, 0);
+		sqvm._sq_get(value, idx);
+		return value;
+	}
+	inline XSQ_VEC3 Get(TypeWrapper<XSQ_VEC3&>, HSQUIRRELVM vm, SQInteger idx)
+	{
+		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
+		XSQ_VEC3 value = XSQ_VEC3(0, 0, 0);
+		sqvm._sq_get(value, idx);
+		return value;
+	}
+	inline XSQ_VEC3 Get(TypeWrapper<const XSQ_VEC3 &>, HSQUIRRELVM vm, SQInteger idx)
+	{
+		SqVM &sqvm = *(SqVM*)sq_getforeignptr(vm);
+		XSQ_VEC3 value = XSQ_VEC3(0, 0, 0);
+		sqvm._sq_get(value, idx);
 		return value;
 	}
 	template<> inline SQRESULT Push<XSQ_VEC3>(HSQUIRRELVM vm, XSQ_VEC3 &value)
@@ -135,3 +169,7 @@ namespace sqb {
 		sq_poptop(vm);									\
 	}													\
 	static char __xsq_register_trigger_##fn = (__xsq_register::add(__xsq_register_##fn), 0);
+
+
+
+#include "sqbind/SquirrelBind.h"
